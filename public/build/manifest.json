@@ -1,0 +1,30 @@
+{
+  "node_modules/pdfjs-dist/build/pdf.mjs": {
+    "file": "assets/pdf-uJYYfxCV.js",
+    "name": "pdf",
+    "src": "node_modules/pdfjs-dist/build/pdf.mjs",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/react/main.tsx"
+    ]
+  },
+  "node_modules/pdfjs-dist/build/pdf.worker.mjs": {
+    "file": "assets/pdf.worker-TGcf_-kp.mjs",
+    "src": "node_modules/pdfjs-dist/build/pdf.worker.mjs"
+  },
+  "resources/react/main.tsx": {
+    "file": "assets/main-COAW1kYI.js",
+    "name": "main",
+    "src": "resources/react/main.tsx",
+    "isEntry": true,
+    "dynamicImports": [
+      "node_modules/pdfjs-dist/build/pdf.mjs"
+    ],
+    "css": [
+      "assets/main-CO7tjZyz.css"
+    ],
+    "assets": [
+      "assets/pdf.worker-TGcf_-kp.mjs"
+    ]
+  }
+}

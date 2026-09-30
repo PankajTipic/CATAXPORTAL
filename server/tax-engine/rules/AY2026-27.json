@@ -1,0 +1,90 @@
+{
+  "_disclaimer": "VERIFY every value against the official Income Tax Department utilities/rules before production.",
+  "assessmentYear": "2026-27",
+  "financialYear": "2025-26",
+  "version": "1.0.0",
+  "effectiveFrom": "2025-04-01",
+  "effectiveTo": "2026-03-31",
+  "healthAndEducationCessRate": 0.04,
+  "housePropertyLossSetOffLimit": 200000,
+  "newRegime": {
+    "isDefault": true,
+    "standardDeductionSalary": 75000,
+    "familyPensionDeduction": 25000,
+    "sec87aRebate": {
+      "maxIncomeThreshold": 1200000,
+      "maxRebateAmount": 60000
+    },
+    "slabs": [
+      { "min": 0, "max": 400000, "rate": 0.0 },
+      { "min": 400000, "max": 800000, "rate": 0.05 },
+      { "min": 800000, "max": 1200000, "rate": 0.10 },
+      { "min": 1200000, "max": 1600000, "rate": 0.15 },
+      { "min": 1600000, "max": 2000000, "rate": 0.20 },
+      { "min": 2000000, "max": 2400000, "rate": 0.25 },
+      { "min": 2400000, "max": null, "rate": 0.30 }
+    ],
+    "surchargeTiers": [
+      { "threshold": 5000000, "rate": 0.10 },
+      { "threshold": 10000000, "rate": 0.15 },
+      { "threshold": 20000000, "rate": 0.25 }
+    ],
+    "allowedDeductions": [
+      "80CCD_2",
+      "80CCH",
+      "80JJAA"
+    ]
+  },
+  "oldRegime": {
+    "isDefault": false,
+    "standardDeductionSalary": 50000,
+    "familyPensionDeduction": 15000,
+    "sec87aRebate": {
+      "maxIncomeThreshold": 500000,
+      "maxRebateAmount": 12500
+    },
+    "slabsIndividual": [
+      { "min": 0, "max": 250000, "rate": 0.0 },
+      { "min": 250000, "max": 500000, "rate": 0.05 },
+      { "min": 500000, "max": 1000000, "rate": 0.20 },
+      { "min": 1000000, "max": null, "rate": 0.30 }
+    ],
+    "slabsSeniorCitizen": [
+      { "min": 0, "max": 300000, "rate": 0.0 },
+      { "min": 300000, "max": 500000, "rate": 0.05 },
+      { "min": 500000, "max": 1000000, "rate": 0.20 },
+      { "min": 1000000, "max": null, "rate": 0.30 }
+    ],
+    "slabsSuperSeniorCitizen": [
+      { "min": 0, "max": 500000, "rate": 0.0 },
+      { "min": 500000, "max": 1000000, "rate": 0.20 },
+      { "min": 1000000, "max": null, "rate": 0.30 }
+    ],
+    "surchargeTiers": [
+      { "threshold": 5000000, "rate": 0.10 },
+      { "threshold": 10000000, "rate": 0.15 },
+      { "threshold": 20000000, "rate": 0.25 },
+      { "threshold": 50000000, "rate": 0.37 }
+    ],
+    "deductionLimits": {
+      "80C": 150000,
+      "80CCD_1B": 50000,
+      "80D_Self": 25000,
+      "80D_Parents": 25000,
+      "80D_SeniorParents": 50000,
+      "80TTA": 10000,
+      "80TTB": 50000,
+      "80GG": 60000,
+      "80DD_Normal": 75000,
+      "80DD_Severe": 125000,
+      "80U_Normal": 75000,
+      "80U_Severe": 125000
+    }
+  },
+  "capitalGains": {
+    "sec111a_STCG_rate": 0.20,
+    "sec112_LTCG_rate": 0.125,
+    "sec112a_LTCG_rate": 0.125,
+    "sec112a_exemptionLimit": 125000
+  }
+}

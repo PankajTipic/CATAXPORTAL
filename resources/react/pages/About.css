@@ -1,0 +1,255 @@
+/* About Us 3D Styling */
+.about-page-3d {
+  overflow-x: hidden;
+  perspective: 1500px;
+}
+
+.about-hero-3d {
+  padding: 10rem 0 4rem;
+  background: var(--bg);
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+}
+
+.about-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6rem;
+  align-items: center;
+}
+
+.about-hero-content h1 {
+  font-size: 5.5rem;
+  line-height: 1;
+  color: var(--primary);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin: 1.5rem 0;
+}
+
+.about-hero-content p {
+  font-size: 1.3rem;
+  color: var(--primary);
+  opacity: 0.7;
+  max-width: 500px;
+}
+
+.about-hero-visual {
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+.about-3d-card {
+  position: relative;
+  border-radius: 30px;
+  overflow: hidden;
+  box-shadow: 0 40px 80px rgba(61, 82, 160, 0.15);
+  transform-style: preserve-3d;
+}
+
+.about-3d-card img {
+  width: 100%;
+  display: block;
+}
+
+.badge-3d {
+  display: inline-block;
+  padding: 0.6rem 1.5rem;
+  background: rgba(243, 156, 18, 0.1);
+  color: var(--accent-v3);
+  border-radius: 50px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  margin-bottom: 2rem;
+}
+
+.card-tag {
+  position: absolute;
+  top: 30px;
+  left: 30px;
+  background: var(--white);
+  color: var(--primary);
+  padding: 0.8rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  transform: translateZ(50px);
+}
+
+/* Story Section */
+.about-story-3d {
+  position: relative;
+  overflow: hidden;
+}
+
+.bg-text-3d {
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 20rem;
+  font-weight: 900;
+  color: var(--primary);
+  opacity: 0.03;
+  z-index: -1;
+  letter-spacing: 0.1em;
+}
+
+.story-grid-3d {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+.rounded-3d {
+  width: 100%;
+  border-radius: 40px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1);
+}
+
+.story-text-3d h2 {
+  font-size: 3.5rem;
+  line-height: 1.1;
+  margin-bottom: 2rem;
+  color: var(--primary);
+}
+
+.story-text-3d h2 span {
+  color: var(--secondary);
+}
+
+.story-stats-3d {
+  margin-top: 4rem;
+  display: flex;
+  gap: 4rem;
+}
+
+.s-stat-3d h3 {
+  font-size: 3rem;
+  color: var(--primary);
+  line-height: 1;
+}
+
+.s-stat-3d p {
+  font-size: 0.9rem;
+  font-weight: 700;
+  opacity: 0.5;
+  text-transform: uppercase;
+}
+
+/* Values Grid */
+.values-grid-3d {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2rem;
+  margin-top: 5rem;
+}
+
+.value-card-3d {
+  background: var(--white);
+  padding: 3rem 2rem;
+  border-radius: 24px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+  transform-style: preserve-3d;
+  transition: box-shadow 0.3s ease;
+}
+
+.value-card-3d:hover {
+  box-shadow: 0 30px 60px rgba(61, 82, 160, 0.1);
+}
+
+.v-letter-3d {
+  font-size: 4rem;
+  font-weight: 900;
+  color: var(--accent-v3);
+  margin-bottom: 1.5rem;
+  transform: translateZ(30px);
+}
+
+.value-card-3d h3 {
+  margin-bottom: 1rem;
+  transform: translateZ(20px);
+}
+
+.value-card-3d p {
+  font-size: 0.9rem;
+  opacity: 0.6;
+  transform: translateZ(10px);
+}
+
+/* Vision Box */
+.vision-box-3d {
+  background-size: cover;
+  background-position: center;
+  padding: 8rem 4rem;
+  border-radius: 40px;
+  text-align: center;
+  color: var(--white);
+  transform-style: preserve-3d;
+  box-shadow: 0 40px 80px rgba(61, 82, 160, 0.3);
+}
+
+.vision-icon-3d {
+  margin-bottom: 2rem;
+  transform: translateZ(60px);
+}
+
+.vision-box-3d h2 {
+  font-size: 4rem;
+  margin-bottom: 2rem;
+  transform: translateZ(40px);
+}
+
+.vision-box-3d p {
+  font-size: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto 4rem;
+  line-height: 1.6;
+  transform: translateZ(20px);
+}
+
+@media (max-width: 1200px) {
+  .values-grid-3d {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+
+  .about-hero-grid,
+  .story-grid-3d {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .about-hero-content h1 {
+    font-size: 3.5rem;
+  }
+
+  .story-stats-3d {
+    justify-content: center;
+  }
+
+  .values-grid-3d {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .values-grid-3d {
+    grid-template-columns: 1fr;
+  }
+
+  .vision-box-3d h2 {
+    font-size: 2.5rem;
+  }
+
+  .vision-box-3d p {
+    font-size: 1.1rem;
+  }
+}

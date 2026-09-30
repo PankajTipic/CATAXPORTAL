@@ -1,0 +1,248 @@
+/* Products 3D Styling */
+.products-page-3d {
+  overflow-x: hidden;
+  perspective: 1500px;
+}
+
+.product-hero-3d {
+  padding: 10rem 0 4rem;
+  background: var(--bg);
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+}
+
+.product-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6rem;
+  align-items: center;
+}
+
+.product-hero-text h1 {
+  font-size: 5rem;
+  line-height: 1;
+  color: var(--primary);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin: 1.5rem 0;
+}
+
+.product-hero-text p {
+  font-size: 1.2rem;
+  opacity: 0.7;
+  max-width: 500px;
+}
+
+.product-hero-visual {
+  transform-style: preserve-3d;
+}
+
+.product-main-card {
+  position: relative;
+  border-radius: 30px;
+  overflow: hidden;
+  box-shadow: 0 40px 80px rgba(61, 82, 160, 0.15);
+  transform-style: preserve-3d;
+}
+
+.product-main-card img {
+  width: 100%;
+  display: block;
+}
+
+.product-floating-tag {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  background: var(--white);
+  color: var(--secondary);
+  padding: 1rem 2rem;
+  border-radius: 50px;
+  font-weight: 800;
+  font-size: 0.8rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  transform: translateZ(60px);
+}
+
+/* Tabs */
+.tabs-container-3d {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 4rem;
+}
+
+.product-tab-btn {
+  padding: 1rem 2.5rem;
+  border-radius: 50px;
+  background: var(--white);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 1rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  transition: var(--transition);
+}
+
+.product-tab-btn.active {
+  background: var(--primary);
+  color: var(--white);
+  transform: scale(1.1);
+  box-shadow: 0 15px 30px rgba(61, 82, 160, 0.2);
+}
+
+/* Product Grid */
+.product-grid-3d {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3rem;
+}
+
+.product-card-3d {
+  background: var(--white);
+  padding: 3rem;
+  border-radius: 30px;
+  transform-style: preserve-3d;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+  transition: box-shadow 0.3s ease;
+}
+
+.product-card-3d:hover {
+  box-shadow: 0 30px 60px rgba(61, 82, 160, 0.1);
+}
+
+.p-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  transform: translateZ(40px);
+}
+
+.p-icon-box {
+  color: var(--accent-v3);
+  background: var(--bg);
+  padding: 1rem;
+  border-radius: 15px;
+}
+
+.p-badge {
+  background: var(--bg);
+  color: var(--primary);
+  padding: 0.4rem 1rem;
+  border-radius: 30px;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.product-card-3d h3 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  transform: translateZ(30px);
+}
+
+.product-card-3d p {
+  font-size: 0.95rem;
+  opacity: 0.6;
+  margin-bottom: 2.5rem;
+  transform: translateZ(20px);
+  line-height: 1.6;
+}
+
+.p-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transform: translateZ(10px);
+}
+
+.p-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--secondary);
+}
+
+.p-btn {
+  background: none;
+  color: var(--primary);
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* Features 3D */
+.features-3d-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6rem;
+  align-items: center;
+}
+
+.f-3d-visual img {
+  width: 100%;
+  border-radius: 40px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1);
+}
+
+.f-3d-text h2 {
+  font-size: 3.5rem;
+  line-height: 1.1;
+  margin-bottom: 2rem;
+}
+
+.f-3d-list {
+  margin-top: 3rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.f-item-3d {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 1.1rem;
+}
+
+@media (max-width: 1200px) {
+  .product-grid-3d {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+
+  .product-hero-grid,
+  .features-3d-grid {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .product-hero-text h1 {
+    font-size: 3.5rem;
+  }
+
+  .tabs-container-3d {
+    flex-wrap: wrap;
+  }
+
+  .product-grid-3d {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .product-hero-text h1 {
+    font-size: 2.8rem;
+  }
+
+  .f-3d-text h2 {
+    font-size: 2.5rem;
+  }
+}
