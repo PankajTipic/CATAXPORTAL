@@ -101,7 +101,7 @@ export default function Form16TableView({ data = {}, showFullAnnexure = true }) 
   return (
     <div style={{ background: "#ffffff", borderRadius: "12px", border: "1.5px solid #cbd5e1", overflow: "hidden", marginTop: "16px", boxShadow: "0 2px 10px rgba(0,0,0,0.04)" }}>
       {/* ── Official Document Banner ── */}
-      <div style={{ background: "#0b3d91", color: "#ffffff", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+      <div style={{ background: "#142B46", color: "#ffffff", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
         <div>
           <div style={{ fontSize: "16px", fontWeight: "900", letterSpacing: "0.5px" }}>FORM NO. 16</div>
           <div style={{ fontSize: "11px", opacity: 0.9 }}>[See rule 31(1)(a)] • Certificate under section 203 of the Income-tax Act, 1961</div>
@@ -112,7 +112,7 @@ export default function Form16TableView({ data = {}, showFullAnnexure = true }) 
               {d.applicableItr.split("—")[0].trim()}
             </CBadge>
           )}
-          <CBadge color="light" style={{ fontSize: "11px", padding: "4px 10px", color: "#0b3d91", fontWeight: "800" }}>
+          <CBadge color="light" style={{ fontSize: "11px", padding: "4px 10px", color: "#142B46", fontWeight: "800" }}>
             AY: {d.assessmentYear || "2026-27"}
           </CBadge>
         </div>
@@ -120,8 +120,8 @@ export default function Form16TableView({ data = {}, showFullAnnexure = true }) 
 
       {/* ── PART A: CERTIFICATE & PARTIES IDENTIFICATION ── */}
       <div style={{ padding: "18px 20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #0b3d91", paddingBottom: "6px", marginBottom: "14px" }}>
-          <span style={{ fontWeight: "800", fontSize: "14px", color: "#0b3d91" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #142B46", paddingBottom: "6px", marginBottom: "14px" }}>
+          <span style={{ fontWeight: "800", fontSize: "14px", color: "#142B46" }}>
             PART A — TDS Certificate &amp; Quarterly Summary
           </span>
           <span style={{ fontSize: "12px", color: "#64748b" }}>
@@ -196,14 +196,14 @@ export default function Form16TableView({ data = {}, showFullAnnexure = true }) 
                   <CTableDataCell><code>{q.receiptNo || "—"}</code></CTableDataCell>
                   <CTableDataCell style={{ textAlign: "right", fontWeight: "600" }}>{fmt(q.amountPaid)}</CTableDataCell>
                   <CTableDataCell style={{ textAlign: "right", fontWeight: "600", color: "#16a34a" }}>{fmt(q.taxDeducted)}</CTableDataCell>
-                  <CTableDataCell style={{ textAlign: "right", fontWeight: "600", color: "#0b3d91" }}>{fmt(q.taxDeposited)}</CTableDataCell>
+                  <CTableDataCell style={{ textAlign: "right", fontWeight: "600", color: "#142B46" }}>{fmt(q.taxDeposited)}</CTableDataCell>
                 </CTableRow>
               ))}
               <CTableRow style={{ background: "#e2e8f0", fontWeight: "800" }}>
                 <CTableDataCell colSpan={2}>Total (Part A Verified)</CTableDataCell>
                 <CTableDataCell style={{ textAlign: "right" }}>{fmt(totalPaid)}</CTableDataCell>
                 <CTableDataCell style={{ textAlign: "right", color: "#16a34a" }}>{fmt(totalDeducted)}</CTableDataCell>
-                <CTableDataCell style={{ textAlign: "right", color: "#0b3d91" }}>{fmt(totalDeposited)}</CTableDataCell>
+                <CTableDataCell style={{ textAlign: "right", color: "#142B46" }}>{fmt(totalDeposited)}</CTableDataCell>
               </CTableRow>
             </CTableBody>
           </CTable>
@@ -212,8 +212,8 @@ export default function Form16TableView({ data = {}, showFullAnnexure = true }) 
         {/* ── PART B (ANNEXURE): DETAILS OF SALARY PAID & TAX DEDUCTED ── */}
         {showFullAnnexure && (
           <div style={{ marginTop: "24px" }}>
-            <div style={{ borderBottom: "2px solid #0b3d91", paddingBottom: "6px", marginBottom: "16px" }}>
-              <span style={{ fontWeight: "800", fontSize: "14px", color: "#0b3d91" }}>
+            <div style={{ borderBottom: "2px solid #142B46", paddingBottom: "6px", marginBottom: "16px" }}>
+              <span style={{ fontWeight: "800", fontSize: "14px", color: "#142B46" }}>
                 PART B (Annexure) — Details of Salary Paid and any other income and tax deducted
               </span>
             </div>
@@ -246,7 +246,7 @@ export default function Form16TableView({ data = {}, showFullAnnexure = true }) 
                     </CTableRow>
                     <CTableRow style={{ background: "#f1f5f9", fontWeight: "800" }}>
                       <CTableDataCell>(d) Total Gross Salary</CTableDataCell>
-                      <CTableDataCell style={{ textAlign: "right", color: "#0b3d91", fontSize: "13px" }}>{fmt(grossSalaryVal)}</CTableDataCell>
+                      <CTableDataCell style={{ textAlign: "right", color: "#142B46", fontSize: "13px" }}>{fmt(grossSalaryVal)}</CTableDataCell>
                     </CTableRow>
                   </CTableBody>
                 </CTable>

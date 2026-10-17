@@ -166,7 +166,7 @@ export function generateReviewPdfHtml(data: ReviewSummaryPdfData): string {
     </div>
     <div style="text-align: right;">
       <span class="badge badge-blue">${data.itrForm}</span>
-      <span class="badge badge-green" style="margin-left: 4px;">${data.regime.toUpperCase()} REGIME</span>
+      <span class="badge badge-green" style="margin-left: 4px;">${(data.regime || 'new').toUpperCase()} REGIME</span>
       <div style="font-size: 11px; color: #94a3b8; margin-top: 6px;">Generated on: ${data.generatedDate}</div>
     </div>
   </div>
@@ -234,7 +234,7 @@ export function generateReviewPdfHtml(data: ReviewSummaryPdfData): string {
       <tr>
         <th>Chapter VI-A Section</th>
         <th class="text-right">Claimed (₹)</th>
-        <th class="text-right">Allowed in ${data.regime.toUpperCase()} Regime (₹)</th>
+        <th class="text-right">Allowed in ${(data.regime || 'new').toUpperCase()} Regime (₹)</th>
       </tr>
     </thead>
     <tbody>

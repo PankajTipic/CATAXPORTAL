@@ -45,21 +45,23 @@ export default function FlowSelectionModal({ visible, onClose, pan }) {
     transition: "all 0.22s ease",
     position: "relative",
     overflow: "hidden",
-    background: "#ffffff",
+    background: selectedFlow === key
+      ? key === "self" ? "#fffdfa" : "#fbfdfc"
+      : "#ffffff",
     border: selectedFlow === key
       ? key === "self"
-        ? "2.5px solid #3b82f6"
-        : "2.5px solid #10b981"
+        ? "1.5px solid #fcd34d"
+        : "1.5px solid #86efac"
       : hovering === key
-        ? "2px solid #cbd5e1"
-        : "2px solid #e2e8f0",
+        ? "1.5px solid #cbd5e1"
+        : "1.5px solid #e2e8f0",
     boxShadow: selectedFlow === key
       ? key === "self"
-        ? "0 0 0 4px rgba(59,130,246,0.1), 0 8px 24px rgba(59,130,246,0.12)"
-        : "0 0 0 4px rgba(16,185,129,0.1), 0 8px 24px rgba(16,185,129,0.12)"
+        ? "0 0 0 3px rgba(250,160,28,0.08), 0 8px 24px rgba(250,160,28,0.06)"
+        : "0 0 0 3px rgba(0,155,98,0.08), 0 8px 24px rgba(0,155,98,0.06)"
       : hovering === key
-        ? "0 8px 24px rgba(0,0,0,0.08)"
-        : "0 2px 8px rgba(0,0,0,0.05)",
+        ? "0 8px 24px rgba(0,0,0,0.04)"
+        : "0 2px 8px rgba(0,0,0,0.02)",
     transform: hovering === key || selectedFlow === key ? "translateY(-3px)" : "none",
   });
 
@@ -73,12 +75,16 @@ export default function FlowSelectionModal({ visible, onClose, pan }) {
     >
       <CModalBody style={{ padding: 0, borderRadius: "16px", overflow: "hidden" }}>
 
+        {/* TiQTAX Signature Logo Gradient Top Stripe */}
+        <div style={{ height: "3.5px", background: "linear-gradient(90deg, #FAA01C 0%, #F02186 50%, #A600B8 100%)", width: "100%" }} />
+
         {/* ── Header ── */}
         <div
           style={{
-            background: "linear-gradient(135deg, #0b1f3a 0%, #1e3a5f 100%)",
-            padding: "32px 40px 28px",
+            background: "#ffffff",
+            padding: "28px 40px 24px",
             position: "relative",
+            borderBottom: "1px solid #e2e8f0",
           }}
         >
           {/* Close button */}
@@ -86,12 +92,12 @@ export default function FlowSelectionModal({ visible, onClose, pan }) {
             onClick={onClose}
             style={{
               position: "absolute",
-              top: "14px",
-              right: "16px",
-              background: "rgba(255,255,255,0.12)",
-              border: "1px solid rgba(255,255,255,0.2)",
+              top: "16px",
+              right: "18px",
+              background: "#f1f5f9",
+              border: "1px solid #e2e8f0",
               borderRadius: "8px",
-              color: "#94a3b8",
+              color: "#64748b",
               width: "32px",
               height: "32px",
               fontSize: "18px",
@@ -99,15 +105,25 @@ export default function FlowSelectionModal({ visible, onClose, pan }) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#e2e8f0";
+              e.currentTarget.style.color = "#1E293B";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#f1f5f9";
+              e.currentTarget.style.color = "#64748b";
             }}
           >
             &times;
           </button>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
             <div style={{
               width: "48px", height: "48px", borderRadius: "14px",
-              background: "linear-gradient(135deg, #38bdf8, #6366f1)",
+              background: "rgba(250, 160, 28, 0.09)",
+              border: "1px solid rgba(250, 160, 28, 0.22)",
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: "22px", flexShrink: 0,
             }}>
@@ -116,30 +132,30 @@ export default function FlowSelectionModal({ visible, onClose, pan }) {
             <div>
               <div style={{
                 display: "inline-block",
-                background: "rgba(56,189,248,0.15)",
-                border: "1px solid rgba(56,189,248,0.3)",
+                background: "rgba(240, 33, 134, 0.08)",
+                border: "1px solid rgba(240, 33, 134, 0.2)",
                 borderRadius: "100px",
                 padding: "2px 12px",
-                color: "#38bdf8",
-                fontSize: "10px",
+                color: "#c026d3",
+                fontSize: "10.5px",
                 fontWeight: "800",
-                letterSpacing: "1px",
+                letterSpacing: "0.5px",
                 textTransform: "uppercase",
                 marginBottom: "6px",
               }}>
                 One-Time Setup
               </div>
-              <h2 style={{ fontSize: "20px", fontWeight: "900", color: "#fff", margin: 0, letterSpacing: "-0.2px" }}>
+              <h2 style={{ fontSize: "21px", fontWeight: "900", color: "#1E293B", margin: 0, letterSpacing: "-0.2px" }}>
                 How would you like to file your ITR?
               </h2>
-              <p style={{ color: "#94a3b8", fontSize: "13px", margin: "4px 0 0", lineHeight: "1.5" }}>
+              <p style={{ color: "#64748b", fontSize: "13px", margin: "4px 0 0", lineHeight: "1.5" }}>
                 Your preference will be saved — you won&apos;t be asked again on future logins.
               </p>
             </div>
           </div>
         </div>
 
-        {/* ── Cards Section (White Background) ── */}
+        {/* ── Cards Section (Clean White Background) ── */}
         <div style={{ background: "#f8fafc", padding: "28px 40px 32px" }}>
 
           <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
@@ -152,10 +168,10 @@ export default function FlowSelectionModal({ visible, onClose, pan }) {
               onMouseLeave={() => setHovering(null)}
             >
               {/* Top accent bar */}
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "linear-gradient(90deg, #3b82f6, #6366f1)" }} />
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "linear-gradient(90deg, rgba(250, 160, 28, 0.5), rgba(240, 91, 94, 0.5))" }} />
 
               {selectedFlow === "self" && (
-                <div style={{ position: "absolute", top: "14px", right: "14px", background: "linear-gradient(135deg, #3b82f6, #6366f1)", color: "#fff", fontSize: "10px", fontWeight: "800", padding: "3px 10px", borderRadius: "100px", letterSpacing: "0.5px" }}>
+                <div style={{ position: "absolute", top: "14px", right: "14px", background: "rgba(250, 160, 28, 0.12)", border: "1px solid rgba(250, 160, 28, 0.3)", color: "#b45309", fontSize: "10px", fontWeight: "800", padding: "3px 10px", borderRadius: "100px", letterSpacing: "0.5px" }}>
                   &#10003; Selected
                 </div>
               )}
@@ -163,19 +179,19 @@ export default function FlowSelectionModal({ visible, onClose, pan }) {
               {/* Icon */}
               <div style={{
                 width: "52px", height: "52px", borderRadius: "14px",
-                background: "linear-gradient(135deg, #eff6ff, #eef2ff)",
-                border: "1.5px solid #bfdbfe",
+                background: "rgba(250, 160, 28, 0.09)",
+                border: "1px solid rgba(250, 160, 28, 0.22)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: "24px", marginBottom: "16px",
               }}>
                 &#9889;
               </div>
 
-              <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "100px", padding: "3px 10px", color: "#3b82f6", fontSize: "10px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "rgba(250, 160, 28, 0.08)", border: "1px solid rgba(250, 160, 28, 0.22)", borderRadius: "100px", padding: "3px 10px", color: "#b45309", fontSize: "10.5px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px" }}>
                 &#9889; Do It Yourself
               </div>
 
-              <h3 style={{ fontSize: "18px", fontWeight: "900", color: "#0f172a", margin: "0 0 8px" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: "900", color: "#1E293B", margin: "0 0 8px" }}>
                 Self-File Your ITR
               </h3>
               <p style={{ color: "#64748b", fontSize: "13px", lineHeight: "1.6", margin: "0 0 16px" }}>
@@ -185,7 +201,7 @@ export default function FlowSelectionModal({ visible, onClose, pan }) {
               <ul style={{ padding: 0, margin: "0 0 20px", listStyle: "none", display: "flex", flexDirection: "column", gap: "6px" }}>
                 {selfFeatures.map((f) => (
                   <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: "8px", color: "#334155", fontSize: "12.5px" }}>
-                    <span style={{ color: "#3b82f6", marginTop: "1px", flexShrink: 0, fontWeight: "bold" }}>&#10003;</span>
+                    <span style={{ color: "#d97706", marginTop: "1px", flexShrink: 0, fontWeight: "bold" }}>&#10003;</span>
                     {f}
                   </li>
                 ))}
@@ -193,10 +209,10 @@ export default function FlowSelectionModal({ visible, onClose, pan }) {
 
               <div style={{
                 width: "100%", padding: "12px", borderRadius: "10px", textAlign: "center",
-                background: selectedFlow === "self" ? "linear-gradient(135deg, #3b82f6, #6366f1)" : "#eff6ff",
-                border: selectedFlow === "self" ? "none" : "1.5px solid #bfdbfe",
-                color: selectedFlow === "self" ? "#fff" : "#3b82f6",
-                fontSize: "13.5px", fontWeight: "700", transition: "all 0.2s",
+                background: selectedFlow === "self" ? "linear-gradient(135deg, #f59e0b, #ec4899)" : "rgba(250, 160, 28, 0.06)",
+                border: selectedFlow === "self" ? "none" : "1px solid rgba(250, 160, 28, 0.22)",
+                color: selectedFlow === "self" ? "#fff" : "#b45309",
+                fontSize: "13px", fontWeight: "700", transition: "all 0.2s",
               }}>
                 {selectedFlow === "self" ? "&#10003; Self-Filing Selected" : "Choose Self-Filing \u2192"}
               </div>
@@ -210,29 +226,35 @@ export default function FlowSelectionModal({ visible, onClose, pan }) {
               onMouseLeave={() => setHovering(null)}
             >
               {/* Top accent bar */}
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "linear-gradient(90deg, #10b981, #f59e0b)" }} />
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "linear-gradient(90deg, rgba(0, 155, 98, 0.5), rgba(168, 207, 69, 0.5))" }} />
 
               {/* Badge */}
-              <div style={{ position: "absolute", top: "14px", right: "14px", background: selectedFlow === "hire_ca" ? "linear-gradient(135deg, #10b981, #059669)" : "linear-gradient(135deg, #f59e0b, #d97706)", color: "#fff", fontSize: "10px", fontWeight: "800", padding: "3px 10px", borderRadius: "100px", letterSpacing: "0.5px" }}>
-                {selectedFlow === "hire_ca" ? "&#10003; Selected" : "&#11088; Recommended"}
+              <div style={{
+                position: "absolute", top: "14px", right: "14px",
+                background: selectedFlow === "hire_ca" ? "rgba(0, 155, 98, 0.12)" : "rgba(250, 160, 28, 0.1)",
+                border: selectedFlow === "hire_ca" ? "1px solid rgba(0, 155, 98, 0.25)" : "1px solid rgba(250, 160, 28, 0.25)",
+                color: selectedFlow === "hire_ca" ? "#15803d" : "#b45309",
+                fontSize: "10px", fontWeight: "800", padding: "3px 10px", borderRadius: "100px", letterSpacing: "0.5px"
+              }}>
+                {selectedFlow === "hire_ca" ? "&#10003; Selected" : "⭐ Recommended"}
               </div>
 
               {/* Icon */}
               <div style={{
                 width: "52px", height: "52px", borderRadius: "14px",
-                background: "linear-gradient(135deg, #ecfdf5, #fefce8)",
-                border: "1.5px solid #a7f3d0",
+                background: "rgba(0, 155, 98, 0.09)",
+                border: "1px solid rgba(0, 155, 98, 0.22)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: "24px", marginBottom: "16px",
               }}>
                 &#128188;
               </div>
 
-              <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: "100px", padding: "3px 10px", color: "#10b981", fontSize: "10px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "rgba(0, 155, 98, 0.08)", border: "1px solid rgba(0, 155, 98, 0.22)", borderRadius: "100px", padding: "3px 10px", color: "#15803d", fontSize: "10.5px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px" }}>
                 &#127775; CA Assisted
               </div>
 
-              <h3 style={{ fontSize: "18px", fontWeight: "900", color: "#0f172a", margin: "0 0 8px" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: "900", color: "#1E293B", margin: "0 0 8px" }}>
                 Hire a CA Agent
               </h3>
               <p style={{ color: "#64748b", fontSize: "13px", lineHeight: "1.6", margin: "0 0 16px" }}>
@@ -242,7 +264,7 @@ export default function FlowSelectionModal({ visible, onClose, pan }) {
               <ul style={{ padding: 0, margin: "0 0 20px", listStyle: "none", display: "flex", flexDirection: "column", gap: "6px" }}>
                 {agentFeatures.map((f) => (
                   <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: "8px", color: "#334155", fontSize: "12.5px" }}>
-                    <span style={{ color: "#10b981", marginTop: "1px", flexShrink: 0, fontWeight: "bold" }}>&#10003;</span>
+                    <span style={{ color: "#15803d", marginTop: "1px", flexShrink: 0, fontWeight: "bold" }}>&#10003;</span>
                     {f}
                   </li>
                 ))}
@@ -250,10 +272,10 @@ export default function FlowSelectionModal({ visible, onClose, pan }) {
 
               <div style={{
                 width: "100%", padding: "12px", borderRadius: "10px", textAlign: "center",
-                background: selectedFlow === "hire_ca" ? "linear-gradient(135deg, #10b981, #059669)" : "#ecfdf5",
-                border: selectedFlow === "hire_ca" ? "none" : "1.5px solid #a7f3d0",
-                color: selectedFlow === "hire_ca" ? "#fff" : "#10b981",
-                fontSize: "13.5px", fontWeight: "700", transition: "all 0.2s",
+                background: selectedFlow === "hire_ca" ? "linear-gradient(135deg, #10b981, #059669)" : "rgba(0, 155, 98, 0.06)",
+                border: selectedFlow === "hire_ca" ? "none" : "1px solid rgba(0, 155, 98, 0.22)",
+                color: selectedFlow === "hire_ca" ? "#fff" : "#15803d",
+                fontSize: "13px", fontWeight: "700", transition: "all 0.2s",
               }}>
                 {selectedFlow === "hire_ca" ? "&#10003; Hire CA Selected" : "Choose Hire a CA \u2192"}
               </div>
@@ -262,8 +284,8 @@ export default function FlowSelectionModal({ visible, onClose, pan }) {
 
           {/* ── Footer CTA ── */}
           <div style={{ marginTop: "24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "14px", paddingTop: "20px", borderTop: "1px solid #e2e8f0" }}>
-            <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ color: "#10b981" }}>&#128274;</span>
+            <p style={{ margin: 0, color: "#64748b", fontSize: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ color: "#15803d" }}>&#128274;</span>
               Your preference is saved — no need to choose again on next login.
             </p>
 
@@ -290,7 +312,7 @@ export default function FlowSelectionModal({ visible, onClose, pan }) {
                 style={{
                   background: selectedFlow
                     ? selectedFlow === "self"
-                      ? "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)"
+                      ? "linear-gradient(135deg, #f59e0b 0%, #ec4899 100%)"
                       : "linear-gradient(135deg, #10b981 0%, #059669 100%)"
                     : "#e2e8f0",
                   border: "none",
@@ -301,7 +323,7 @@ export default function FlowSelectionModal({ visible, onClose, pan }) {
                   fontWeight: "800",
                   cursor: selectedFlow ? "pointer" : "not-allowed",
                   transition: "all 0.2s",
-                  boxShadow: selectedFlow ? "0 4px 14px rgba(0,0,0,0.15)" : "none",
+                  boxShadow: selectedFlow ? "0 4px 12px rgba(0,0,0,0.08)" : "none",
                   minWidth: "190px",
                 }}
               >

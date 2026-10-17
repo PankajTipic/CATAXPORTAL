@@ -124,8 +124,8 @@ export default function ITRegisterModal({ visible, onClose, onRegistered, defaul
 
   return (
     <CModal visible={visible} onClose={onClose} size="lg" backdrop="static">
-      <CModalHeader style={{ background: "#0b3d91", color: "#ffffff" }}>
-        <CModalTitle style={{ fontSize: "17px", fontWeight: "700" }}>
+      <CModalHeader style={{ background: "linear-gradient(135deg, rgba(250, 160, 28, 0.08) 0%, rgba(240, 33, 134, 0.08) 50%, rgba(166, 0, 184, 0.08) 100%)", color: "#1E293B", borderBottom: "1px solid #edf2f7" }}>
+        <CModalTitle style={{ fontSize: "17px", fontWeight: "800", color: "#1E293B" }}>
           🏛️ Register on Income Tax e-Filing Portal
         </CModalTitle>
       </CModalHeader>
@@ -293,7 +293,7 @@ export default function ITRegisterModal({ visible, onClose, onRegistered, defaul
           onClick={handleSubmit}
           disabled={loading}
           style={{
-            background: "linear-gradient(135deg, #0b3d91 0%, #1a5bb8 100%)",
+            background: "linear-gradient(135deg, #f59e0b 0%, #ec4899 50%, #c084fc 100%)",
             border: "none",
             fontWeight: "600",
             padding: "8px 24px",

@@ -56,6 +56,10 @@ use App\Http\Controllers\Api\ITRController;
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 
+// Password Reset (Forgot Password) — Public endpoints
+Route::post('/auth/forgot-password', [\App\Http\Controllers\Api\ForgotPasswordController::class, 'sendResetLink']);
+Route::post('/auth/reset-password', [\App\Http\Controllers\Api\ForgotPasswordController::class, 'resetPassword']);
+
 // Dedicated ITR Portal Endpoints (pluggable with real E-filing / third party APIs)
 Route::post('/itr/verify-pan', [ITRController::class, 'verifyPan']);
 Route::post('/itr/check-registration', [ITRController::class, 'checkRegistration']);
@@ -102,11 +106,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/agent/my-requests', [\App\Http\Controllers\Api\AgentRequestController::class, 'myRequests']);
     Route::get('/agent/requests/{id}', [\App\Http\Controllers\Api\AgentRequestController::class, 'show']);
 
+    Route::post('/agent-requests/{id}/onboarding', [\App\Http\Controllers\Api\AgentRequestController::class, 'submitOnboarding']);
+
     // Admin & Employee endpoints
     Route::get('/admin/agent-requests', [\App\Http\Controllers\Api\AgentRequestController::class, 'adminIndex']);
     Route::patch('/admin/agent-requests/{id}/assign', [\App\Http\Controllers\Api\AgentRequestController::class, 'assignEmployee']);
     Route::get('/employee/agent-requests', [\App\Http\Controllers\Api\AgentRequestController::class, 'employeeIndex']);
     Route::patch('/agent-requests/{id}/status', [\App\Http\Controllers\Api\AgentRequestController::class, 'updateStatus']);
+    Route::post('/agent-requests/{id}/accept', [\App\Http\Controllers\Api\AgentRequestController::class, 'acceptRequest']);
+    Route::post('/agent-requests/{id}/reject', [\App\Http\Controllers\Api\AgentRequestController::class, 'rejectRequest']);
     Route::post('/agent-requests/{id}/upload-prepared', [\App\Http\Controllers\Api\AgentRequestController::class, 'uploadPreparedFile']);
 
     // Chat endpoints
@@ -120,9 +128,27 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/agent-requests/{id}/approve-filing', [\App\Http\Controllers\Api\AgentRequestController::class, 'approveFiling']);
     Route::post('/agent-requests/{id}/sign-off-quality-gate', [\App\Http\Controllers\Api\AgentRequestController::class, 'signOffQualityGate']);
     Route::post('/agent-requests/{id}/mark-filed', [\App\Http\Controllers\Api\AgentRequestController::class, 'markFiled']);
+    Route::post('/agent-requests/{id}/submit-it-portal', [\App\Http\Controllers\Api\AgentRequestController::class, 'submitItPortal']);
+    Route::post('/agent-requests/{id}/e-verify', [\App\Http\Controllers\Api\AgentRequestController::class, 'eVerify']);
 
     // Customer consent / approval route (client authorises CA to submit their ITR)
     Route::post('/agent-requests/{id}/customer-approve', [\App\Http\Controllers\Api\AgentRequestController::class, 'customerApprove']);
+
+
+        
+    Route::post('/agent-requests/{id}/request-missing-docs', [\App\Http\Controllers\Api\AgentRequestController::class, 'requestMissingDocs']);
+    Route::post('/agent-requests/{id}/complete-review', [\App\Http\Controllers\Api\AgentRequestController::class, 'completeReview']);
+    Route::post('/agent-requests/{id}/govt-portal-check', [\App\Http\Controllers\Api\AgentRequestController::class, 'govtPortalCheck']);
+    Route::post('/agent-requests/{id}/fetch-tax-data', [\App\Http\Controllers\Api\AgentRequestController::class, 'fetchTaxData']);
+    Route::post('/agent-requests/{id}/save-comparison', [\App\Http\Controllers\Api\AgentRequestController::class, 'saveComparison']);
+    Route::post('/agent-requests/{id}/save-regime-calc', [\App\Http\Controllers\Api\AgentRequestController::class, 'saveRegimeCalc']);
+    Route::patch('/agent-requests/{id}/wizard-progress', [\App\Http\Controllers\Api\AgentRequestController::class,'saveWizardProgress']);
+    Route::get('/agent-requests/{id}/prepared-file', [\App\Http\Controllers\Api\AgentRequestController::class, 'getPreparedFile']);
+    Route::post('/agent-requests/{id}/request-changes', [\App\Http\Controllers\Api\AgentRequestController::class, 'requestChanges']);
+    Route::post('/agent-requests/{id}/submit-final', [\App\Http\Controllers\Api\AgentRequestController::class, 'submitFinalItr']);
+    Route::post('/agent-requests/{id}/submit-final-itr', [\App\Http\Controllers\Api\AgentRequestController::class, 'submitFinalItr']);
+Route::post('/agent-requests/{id}/demo-client-approve', [\App\Http\Controllers\Api\AgentRequestController::class, 'demoClientApprove']);
+
 
     // CA Staff Management CRUD endpoints (Admin)
     Route::apiResource('/admin/employees', \App\Http\Controllers\Api\EmployeeController::class);
@@ -138,8 +164,28 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json(['status' => 'success', 'data' => $logs]);
     });
 
+    // --- GOVT ITR NOTICES & COMPLIANCE (E-PROCEEDINGS) ---
+    Route::get('/notices', [\App\Http\Controllers\Api\ItdNoticeController::class, 'index']);
+    Route::post('/notices', [\App\Http\Controllers\Api\ItdNoticeController::class, 'store']);
+    Route::post('/notices/sync', [\App\Http\Controllers\Api\ItdNoticeController::class, 'sync']);
+    Route::post('/notices/verify-din', [\App\Http\Controllers\Api\ItdNoticeController::class, 'verifyDin']);
+    Route::get('/notices/{id}', [\App\Http\Controllers\Api\ItdNoticeController::class, 'show']);
+    Route::post('/notices/{id}/respond', [\App\Http\Controllers\Api\ItdNoticeController::class, 'respond']);
+    Route::post('/notices/{id}/remind', [\App\Http\Controllers\Api\ItdNoticeController::class, 'sendReminder']);
+    Route::patch('/notices/{id}/status', [\App\Http\Controllers\Api\ItdNoticeController::class, 'updateStatus']);
+
     // Contact Inquiries (CA Portal - admin/employee access)
     Route::get('/contacts', [ContactController::class, 'index']);
     Route::delete('/contacts/{id}', [ContactController::class, 'destroy']);
+
+    // --- ADMIN PAYMENT MANAGEMENT & COUPONS ---
+    Route::get('/admin/payments', [\App\Http\Controllers\Api\PaymentController::class, 'adminIndex']);
+    Route::get('/admin/payments/summary', [\App\Http\Controllers\Api\PaymentController::class, 'adminSummary']);
+    Route::post('/admin/payments/{id}/refund', [\App\Http\Controllers\Api\PaymentController::class, 'adminRefund']);
+    Route::get('/admin/coupons', [\App\Http\Controllers\Api\PaymentController::class, 'getCoupons']);
+    Route::post('/admin/coupons', [\App\Http\Controllers\Api\PaymentController::class, 'saveCoupon']);
+    Route::delete('/admin/coupons/{id}', [\App\Http\Controllers\Api\PaymentController::class, 'deleteCoupon']);
+    Route::patch('/admin/coupons/{id}/toggle', [\App\Http\Controllers\Api\PaymentController::class, 'toggleCoupon']);
 });
+
 

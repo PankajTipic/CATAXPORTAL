@@ -12,7 +12,7 @@ export default function AgentChat({
   const caFirstName = caName?.split(" ")[0] || "Rahul";
   const userFirstName = currentUserName?.split(" ")[0] || "Pankaj";
 
-  // Pre-loaded conversation matching the screenshot exactly
+  // Pre-loaded conversation matching the conversation
   const initialScreenshotMessages = [
     {
       id: "seed-1",
@@ -114,38 +114,40 @@ export default function AgentChat({
     <div
       style={{
         background: "#ffffff",
-        borderRadius: "8px",
+        borderRadius: "16px",
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
         width: "100%",
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
-        border: "1px solid #142844",
+        boxShadow: "0 12px 36px rgba(0,0,0,0.12)",
+        border: "1px solid #E2E8F0",
       }}
     >
+      {/* TiQTAX Signature Logo Gradient Top Stripe */}
+      <div style={{ height: "3.5px", background: "linear-gradient(90deg, #F87826 0%, #FCB21F 22%, #E83E8C 52%, #A020C0 78%, #0A8E4B 100%)", width: "100%" }} />
+
       {/* ═══════════════════════════════════════════════════════
-          HEADER: Dark Navy background (Matches Screenshot)
+          HEADER: Clean White Background with Brand Accents
          ═══════════════════════════════════════════════════════ */}
       <div
         style={{
-          background: "#0a182d",
-          color: "#ffffff",
-          padding: "20px 24px 18px",
+          background: "#ffffff",
+          color: "#1E293B",
+          padding: "18px 22px 16px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
-          borderBottom: "1px solid #142844",
+          borderBottom: "1px solid #E2E8F0",
         }}
       >
         <div>
           <h2
             style={{
               margin: 0,
-              fontSize: "19px",
-              fontWeight: "700",
-              fontFamily: "Georgia, 'Playfair Display', serif",
-              color: "#ffffff",
+              fontSize: "18px",
+              fontWeight: "800",
+              color: "#1E293B",
               letterSpacing: "-0.2px",
             }}
           >
@@ -153,10 +155,10 @@ export default function AgentChat({
           </h2>
           <div
             style={{
-              fontSize: "12.5px",
-              color: "#8ea3bf",
-              marginTop: "4px",
-              fontWeight: "400",
+              fontSize: "12px",
+              color: "#64748B",
+              marginTop: "3px",
+              fontWeight: "500",
             }}
           >
             {caseInfo}
@@ -168,14 +170,14 @@ export default function AgentChat({
               display: "inline-flex",
               alignItems: "center",
               gap: "6px",
-              background: "#082522",
-              border: "1px solid #145949",
+              background: "rgba(0, 155, 98, 0.08)",
+              border: "1px solid rgba(0, 155, 98, 0.22)",
               borderRadius: "20px",
-              padding: "3px 12px",
-              fontSize: "11.5px",
-              fontWeight: "600",
-              color: "#34d399",
-              marginTop: "10px",
+              padding: "2px 10px",
+              fontSize: "11px",
+              fontWeight: "700",
+              color: "#15803d",
+              marginTop: "8px",
             }}
           >
             <span
@@ -183,7 +185,7 @@ export default function AgentChat({
                 width: "6px",
                 height: "6px",
                 borderRadius: "50%",
-                background: "#22c55e",
+                background: "#009B62",
                 display: "inline-block",
               }}
             />
@@ -198,17 +200,28 @@ export default function AgentChat({
             onClick={onClose}
             aria-label="Close"
             style={{
-              background: "transparent",
-              border: "none",
-              color: "#8ea3bf",
-              fontSize: "22px",
+              background: "#F1F5F9",
+              border: "1px solid #E2E8F0",
+              borderRadius: "8px",
+              color: "#64748B",
+              fontSize: "16px",
               lineHeight: "1",
               cursor: "pointer",
-              padding: "4px 8px",
-              transition: "color 0.15s",
+              width: "30px",
+              height: "30px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all 0.15s ease",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#ffffff")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#8ea3bf")}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#E2E8F0";
+              e.currentTarget.style.color = "#142B46";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#F1F5F9";
+              e.currentTarget.style.color = "#64748B";
+            }}
           >
             ✕
           </button>
@@ -216,18 +229,18 @@ export default function AgentChat({
       </div>
 
       {/* ═══════════════════════════════════════════════════════
-          CHAT MESSAGES BODY: Warm Cream background
+          CHAT MESSAGES BODY: Light Soft Background
          ═══════════════════════════════════════════════════════ */}
       <div
         style={{
-          background: "#faf9f5",
+          background: "linear-gradient(180deg, #fdfaf8 0%, #faf8fc 50%, #f4faf6 100%)",
           padding: "20px 22px",
           height: "400px",
           maxHeight: "60vh",
           overflowY: "auto",
           display: "flex",
           flexDirection: "column",
-          gap: "18px",
+          gap: "16px",
         }}
       >
         {messages.map((msg, idx) => {
@@ -251,14 +264,14 @@ export default function AgentChat({
                 alignItems: isMe ? "flex-end" : "flex-start",
               }}
             >
-              {/* Sender Name label (Shown above CA message) */}
+              {/* Sender Name label */}
               {!isMe && (
                 <div
                   style={{
-                    fontSize: "12px",
-                    fontWeight: "600",
-                    color: "#6b7280",
-                    marginBottom: "5px",
+                    fontSize: "11.5px",
+                    fontWeight: "700",
+                    color: "#64748B",
+                    marginBottom: "4px",
                     marginLeft: "2px",
                   }}
                 >
@@ -269,14 +282,14 @@ export default function AgentChat({
               {/* Message Bubble */}
               <div
                 style={{
-                  background: isMe ? "#0a182d" : "#ffffff",
-                  color: isMe ? "#ffffff" : "#111827",
-                  border: isMe ? "none" : "1px solid #e7e5df",
-                  borderRadius: "6px",
-                  padding: "14px 18px",
-                  fontSize: "14px",
+                  background: isMe ? "#f0fbf5" : "#FFFFFF",
+                  color: isMe ? "#0A8E4B" : "#252525",
+                  border: isMe ? "1px solid #c3ebd5" : "1px solid #E2E8F0",
+                  borderRadius: isMe ? "14px 14px 2px 14px" : "14px 14px 14px 2px",
+                  padding: "13px 16px",
+                  fontSize: "13.5px",
                   lineHeight: "1.5",
-                  boxShadow: isMe ? "0 2px 8px rgba(10,24,45,0.15)" : "0 1px 2px rgba(0,0,0,0.02)",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
                 }}
               >
                 <div>{msg.message}</div>
@@ -286,21 +299,21 @@ export default function AgentChat({
                   <div
                     style={{
                       marginTop: "10px",
-                      background: isMe ? "#102444" : "#f3f4f6",
-                      border: isMe ? "1px solid #233d63" : "1px solid #e5e7eb",
-                      borderRadius: "4px",
-                      padding: "8px 12px",
+                      background: isMe ? "rgba(255, 255, 255, 0.7)" : "#F8FAFC",
+                      border: isMe ? "1px solid #fbcfe8" : "1px solid #E2E8F0",
+                      borderRadius: "6px",
+                      padding: "7px 10px",
                       display: "flex",
                       alignItems: "center",
-                      gap: "10px",
+                      gap: "8px",
                     }}
                   >
                     <span
                       style={{
-                        background: "#b47b2b",
-                        color: "#ffffff",
-                        fontWeight: "700",
-                        fontSize: "10px",
+                        background: isMe ? "#fce7f3" : "rgba(250, 160, 28, 0.15)",
+                        color: isMe ? "#9d174d" : "#b45309",
+                        fontWeight: "800",
+                        fontSize: "9.5px",
                         padding: "2px 6px",
                         borderRadius: "3px",
                         letterSpacing: "0.5px",
@@ -313,10 +326,10 @@ export default function AgentChat({
                       target="_blank"
                       rel="noreferrer"
                       style={{
-                        color: isMe ? "#ffffff" : "#111827",
-                        fontSize: "13px",
-                        fontWeight: "500",
-                        textDecoration: "none",
+                        color: isMe ? "#be185d" : "#1E293B",
+                        fontSize: "12.5px",
+                        fontWeight: "600",
+                        textDecoration: "underline",
                         wordBreak: "break-all",
                       }}
                     >
@@ -329,9 +342,9 @@ export default function AgentChat({
               {/* Timestamp below Bubble */}
               <div
                 style={{
-                  fontSize: "11px",
-                  color: "#9ca3af",
-                  marginTop: "4px",
+                  fontSize: "10.5px",
+                  color: "#94A3B8",
+                  marginTop: "3px",
                   marginLeft: isMe ? "0" : "2px",
                   marginRight: isMe ? "2px" : "0",
                 }}
@@ -345,12 +358,12 @@ export default function AgentChat({
       </div>
 
       {/* ═══════════════════════════════════════════════════════
-          FOOTER / INPUT BAR: White background (Matches Screenshot)
+          FOOTER / INPUT BAR: White Background with Brand Button
          ═══════════════════════════════════════════════════════ */}
       <div
         style={{
           background: "#ffffff",
-          borderTop: "1px solid #e7e5df",
+          borderTop: "1px solid #E2E8F0",
           padding: "14px 18px",
         }}
       >
@@ -358,13 +371,13 @@ export default function AgentChat({
         {attachment && (
           <div
             style={{
-              background: "#ecfdf5",
-              border: "1px solid #a7f3d0",
-              borderRadius: "4px",
+              background: "rgba(0, 155, 98, 0.08)",
+              border: "1px solid rgba(0, 155, 98, 0.25)",
+              borderRadius: "6px",
               padding: "6px 12px",
               marginBottom: "10px",
               fontSize: "12px",
-              color: "#065f46",
+              color: "#009B62",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
@@ -379,7 +392,7 @@ export default function AgentChat({
               style={{
                 background: "transparent",
                 border: "none",
-                color: "#dc2626",
+                color: "#F05B5E",
                 cursor: "pointer",
                 fontWeight: "700",
                 padding: "0 4px",
@@ -396,19 +409,20 @@ export default function AgentChat({
             htmlFor={`chat_file_input_${requestId}`}
             title="Attach document or rent receipt"
             style={{
-              border: "1px solid #e7e5df",
-              borderRadius: "4px",
-              background: "#ffffff",
+              border: "1px solid #E2E8F0",
+              borderRadius: "8px",
+              background: "#F8FAFC",
               padding: "9px 12px",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#4b5563",
+              color: "#64748B",
               fontSize: "15px",
               flexShrink: 0,
               userSelect: "none",
               margin: 0,
+              transition: "all 0.15s ease",
             }}
           >
             📎
@@ -430,13 +444,13 @@ export default function AgentChat({
             disabled={sending}
             style={{
               flex: 1,
-              border: "1px solid #e7e5df",
-              borderRadius: "4px",
+              border: "1px solid #CBD5E1",
+              borderRadius: "8px",
               padding: "10px 14px",
               fontSize: "13.5px",
-              color: "#111827",
+              color: "#142B46",
               outline: "none",
-              background: "#ffffff",
+              background: "#FFFFFF",
             }}
           />
 
@@ -445,17 +459,18 @@ export default function AgentChat({
             type="submit"
             disabled={sending || (!inputMessage.trim() && !attachment)}
             style={{
-              background: "#0a182d",
-              color: "#ffffff",
+              background: "#F87826",
+              color: "#FFFFFF",
               border: "none",
-              borderRadius: "4px",
-              padding: "10px 24px",
+              borderRadius: "8px",
+              padding: "10px 22px",
               fontWeight: "700",
               fontSize: "13.5px",
               cursor: sending || (!inputMessage.trim() && !attachment) ? "not-allowed" : "pointer",
               flexShrink: 0,
-              opacity: sending || (!inputMessage.trim() && !attachment) ? 0.7 : 1,
-              transition: "background 0.15s ease",
+              opacity: sending || (!inputMessage.trim() && !attachment) ? 0.6 : 1,
+              boxShadow: "0 2px 8px rgba(248, 120, 38, 0.2)",
+              transition: "all 0.15s ease",
             }}
           >
             Send

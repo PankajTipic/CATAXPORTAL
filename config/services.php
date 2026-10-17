@@ -48,4 +48,11 @@ return [
         'key_secret' => env('RAZORPAY_KEY_SECRET', env('PAYMENT_GATEWAY_SECRET', 'jmyMrNpw3E4mhYKoAKVaKWGq')),
     ],
 
+    'tax_data' => [
+        'provider' => env('TAX_DATA_PROVIDER', 'mock'),
+        'base_url' => env('TAX_DATA_API_BASE_URL', 'https://api.taxprovider.in/v1'),
+        'api_key' => env('TAX_DATA_API_KEY', ''),
+        'timeout' => env('TAX_DATA_API_TIMEOUT', 15),
+    ],
+
 ];

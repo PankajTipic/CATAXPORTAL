@@ -94,6 +94,7 @@ import CaPortal from "./pages/CaPortal";
 import CaLogin from "./pages/CaLogin";
 import CustomerPortal from "./pages/CustomerPortal";
 import ClientDetails from "./pages/ClientDetails";
+import NoticesPage from "./pages/NoticesPage";
 
 function isAuthenticated() {
   return !!localStorage.getItem("auth_token");
@@ -119,12 +120,15 @@ export default function App() {
         <Route path="/tax-profile" element={<ProtectedRoute><TaxProfile /></ProtectedRoute>} />
         <Route path="/connect-itr" element={<ProtectedRoute><ConnectITR /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/notices" element={<ProtectedRoute><NoticesPage /></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute><DocumentsUpload /></ProtectedRoute>} />
         <Route path="/form16" element={<ProtectedRoute><Form16 /></ProtectedRoute>} />
         
         {/* Dedicated Customer Hire a CA & CA Firm Management Console Routes */}
         <Route path="/agent/hire" element={<ProtectedRoute><HireAgent /></ProtectedRoute>} />
         <Route path="/ca-portal" element={<ProtectedRoute><CaPortal /></ProtectedRoute>} />
+        <Route path="/ca-portal/payments" element={<ProtectedRoute><CaPortal defaultNav="payments" /></ProtectedRoute>} />
+        <Route path="/admin/payments" element={<ProtectedRoute><CaPortal defaultNav="payments" /></ProtectedRoute>} />
         <Route path="/ca-portal/client/:id" element={<ProtectedRoute><ClientDetails /></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to={isAuthenticated() ? "/customer-portal" : "/login"} replace />} />

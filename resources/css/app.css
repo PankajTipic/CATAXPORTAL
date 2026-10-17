@@ -6,6 +6,67 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-heading: 'Space Grotesk', 'Inter', sans-serif;
+
+    /* TiQTAX User Provided Official Palette */
+    --color-ink: #142B46;
+    --color-bg: #FFFFFF;
+    --color-surface: #FFFFFF;
+    --color-border: #E2E8F0;
+    --color-muted: #64748B;
+
+    --color-brand-orange: #F5A623;
+    --color-brand-bright-orange: #FAA01C;
+    --color-brand-bar-orange: #F67B26;
+    --color-brand-yellow: #FFD500;
+    --color-brand-light-green: #A8CF45;
+    --color-brand-green: #009B62;
+    --color-brand-dark-green: #008F59;
+    --color-brand-coral-red: #F05B5E;
+    --color-brand-pink: #F02186;
+    --color-brand-magenta: #D900A8;
+    --color-brand-purple: #A600B8;
+    --color-brand-dark-navy: #142B46;
+    --color-brand-hand-gold: #F3AD35;
+
+    --color-primary: #F02186;
+    --color-primary-soft: #D900A8;
+    --color-accent: #FAA01C;
+    --color-success: #009B62;
+    --color-warning: #F3AD35;
+    --color-error: #F05B5E;
+}
+
+:root {
+    --color-ink: #142B46;
+    --color-bg: #FFFFFF;
+    --color-surface: #FFFFFF;
+    --color-border: #E2E8F0;
+    --color-muted: #64748B;
+
+    --color-brand-orange: #F5A623;
+    --color-brand-bright-orange: #FAA01C;
+    --color-brand-bar-orange: #F67B26;
+    --color-brand-yellow: #FFD500;
+    --color-brand-light-green: #A8CF45;
+    --color-brand-green: #009B62;
+    --color-brand-dark-green: #008F59;
+    --color-brand-coral-red: #F05B5E;
+    --color-brand-pink: #F02186;
+    --color-brand-magenta: #D900A8;
+    --color-brand-purple: #A600B8;
+    --color-brand-dark-navy: #142B46;
+    --color-brand-hand-gold: #F3AD35;
+
+    --color-primary: #F02186;
+    --color-primary-soft: #D900A8;
+    --color-accent: #FAA01C;
+    --color-success: #009B62;
+    --color-warning: #F3AD35;
+    --color-error: #F05B5E;
+
+    --gradient-brand: linear-gradient(135deg, #FAA01C 0%, #F02186 50%, #A600B8 100%);
+    --gradient-brand-h: linear-gradient(90deg, #F5A623 0%, #F02186 50%, #A600B8 100%);
+    --gradient-green: linear-gradient(135deg, #A8CF45 0%, #009B62 100%);
 }

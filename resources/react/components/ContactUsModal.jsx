@@ -63,8 +63,8 @@ export default function ContactUsModal({ visible, onClose, defaultSubject = "" }
 
   return (
     <CModal visible={visible} onClose={onClose} backdrop="static" alignment="center">
-      <CModalHeader style={{ background: "linear-gradient(135deg, #0b3d91 0%, #1e40af 100%)", color: "#fff" }}>
-        <CModalTitle style={{ fontSize: "17px", fontWeight: "700" }}>
+      <CModalHeader style={{ background: "linear-gradient(135deg, rgba(250, 160, 28, 0.08) 0%, rgba(240, 33, 134, 0.08) 50%, rgba(166, 0, 184, 0.08) 100%)", color: "#1E293B", borderBottom: "1px solid #edf2f7" }}>
+        <CModalTitle style={{ fontSize: "17px", fontWeight: "800", color: "#1E293B" }}>
           💬 Contact CA Support &amp; Helpdesk
         </CModalTitle>
       </CModalHeader>
@@ -142,7 +142,7 @@ export default function ContactUsModal({ visible, onClose, defaultSubject = "" }
             color="primary"
             disabled={submitting}
             style={{
-              background: "linear-gradient(135deg, #0b3d91 0%, #1e40af 100%)",
+              background: "linear-gradient(135deg, #f59e0b 0%, #ec4899 100%)",
               border: "none",
               fontWeight: "700",
               padding: "8px 22px",

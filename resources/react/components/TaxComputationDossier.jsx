@@ -136,21 +136,21 @@ export default function TaxComputationDossier({
   <style>
     @page { size: A4; margin: 15mm; }
     body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.5; font-size: 13px; margin: 0; padding: 15px; }
-    .header-table { width: 100%; border-bottom: 2px solid #0b3d91; padding-bottom: 12px; margin-bottom: 16px; }
-    .firm-title { font-size: 20px; font-weight: 800; color: #0b3d91; text-transform: uppercase; }
+    .header-table { width: 100%; border-bottom: 2px solid #142B46; padding-bottom: 12px; margin-bottom: 16px; }
+    .firm-title { font-size: 20px; font-weight: 800; color: #142B46; text-transform: uppercase; }
     .sub-title { font-size: 13px; font-weight: 700; color: #475569; }
     .badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 800; }
-    .badge-primary { background: #0b3d91; color: #fff; }
-    .badge-success { background: #16a34a; color: #fff; }
-    .section-title { font-size: 14px; font-weight: 800; color: #0b3d91; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-top: 18px; margin-bottom: 8px; text-transform: uppercase; }
+    .badge-primary { background: #142B46; color: #fff; }
+    .badge-success { background: #009B62; color: #fff; }
+    .section-title { font-size: 14px; font-weight: 800; color: #142B46; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-top: 18px; margin-bottom: 8px; text-transform: uppercase; }
     table.data-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
     table.data-table th, table.data-table td { padding: 6px 10px; border: 1px solid #cbd5e1; font-size: 12px; }
     table.data-table th { background: #f8fafc; font-weight: 700; text-align: left; }
     .amount { text-align: right; font-weight: 700; }
-    .highlight-row { background: #eff6ff; font-weight: 800; }
+    .highlight-row { background: #fdf2f8; font-weight: 800; }
     .success-box { background: #f0fdf4; border: 1px solid #86efac; padding: 12px; border-radius: 6px; margin-top: 15px; }
     .footer-seal { margin-top: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .seal-box { border: 1.5px dashed #0b3d91; border-radius: 8px; padding: 12px 18px; text-align: center; width: 220px; color: #0b3d91; font-size: 11px; }
+    .seal-box { border: 1.5px dashed #142B46; border-radius: 8px; padding: 12px 18px; text-align: center; width: 220px; color: #142B46; font-size: 11px; }
     @media print {
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .no-print { display: none; }
@@ -160,7 +160,7 @@ export default function TaxComputationDossier({
 <body>
   <div class="no-print" style="background: #eff6ff; padding: 10px; border-radius: 6px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
     <span><strong>Tip:</strong> Choose "Save as PDF" in the destination dropdown to export this document.</span>
-    <button onclick="window.print()" style="background: #0b3d91; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer;">🖨️ Print / Save PDF</button>
+    <button onclick="window.print()" style="background: #142B46; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer;">🖨️ Print / Save PDF</button>
   </div>
 
   <table class="header-table">
@@ -172,7 +172,7 @@ export default function TaxComputationDossier({
       </td>
       <td style="text-align: right;">
         <span class="badge badge-primary">${itrFormType}</span>
-        <span class="badge badge-success">${chosenRegime.toUpperCase()} REGIME</span>
+        <span class="badge badge-success">${(chosenRegime || 'new').toUpperCase()} REGIME</span>
         <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Case Ref: #${requestData.id}</div>
       </td>
     </tr>
@@ -184,7 +184,7 @@ export default function TaxComputationDossier({
       <th style="width: 25%;">Taxpayer Name</th>
       <td style="width: 25%; font-weight: bold;">${client.name || "N/A"}</td>
       <th style="width: 25%;">Permanent Account No (PAN)</th>
-      <td style="width: 25%; font-weight: bold; color: #0b3d91;">${pan}</td>
+      <td style="width: 25%; font-weight: bold; color: #142B46;">${pan}</td>
     </tr>
     <tr>
       <th>Assessee Status</th>
@@ -319,7 +319,7 @@ export default function TaxComputationDossier({
   </table>
 
   <div class="success-box">
-    <strong>💡 Regime Optimizer Note:</strong> By selecting the <strong>${chosenRegime.toUpperCase()} Tax Regime</strong>, you have achieved a net tax savings of <strong>₹${taxSavings.toLocaleString("en-IN")}</strong> for Assessment Year ${assessmentYear}.
+    <strong>💡 Regime Optimizer Note:</strong> By selecting the <strong>${(chosenRegime || 'new').toUpperCase()} Tax Regime</strong>, you have achieved a net tax savings of <strong>₹${taxSavings.toLocaleString("en-IN")}</strong> for Assessment Year ${assessmentYear}.
   </div>
 
   <div class="footer-seal">
@@ -330,7 +330,7 @@ export default function TaxComputationDossier({
     </div>
     <div class="seal-box">
       <strong>OFFICIAL SEAL &amp; SIGNATURE</strong><br /><br />
-      <em>CA TAX PORTAL</em><br />
+      <em>TIQTAX</em><br />
       Digitally Verified ✓
     </div>
   </div>
@@ -345,7 +345,7 @@ export default function TaxComputationDossier({
 
   /* ══════════ 3. SHARE LINK & WHATSAPP GENERATION ══════════ */
   const clientPortalUrl = `${window.location.origin}/agent/hire`;
-  const shareMessage = `Hello ${client.name || "Client"},\n\nYour Chartered Accountant has prepared your ITR calculation sheet for AY ${assessmentYear} (PAN: ${pan}).\n\n- Recommended Regime: ${chosenRegime.toUpperCase()} Regime\n- Final Tax: ₹${finalTax.toLocaleString("en-IN")}\n- ${refundDue > 0 ? `Refund Due: ₹${refundDue.toLocaleString("en-IN")}` : `Balance Payable: ₹${taxPayable.toLocaleString("en-IN")}`}\n\nPlease click the link below to review and approve your return:\n${clientPortalUrl}\n\nThank you,\nCA Tax Portal`;
+  const shareMessage = `Hello ${client.name || "Client"},\n\nYour Chartered Accountant has prepared your ITR calculation sheet for AY ${assessmentYear} (PAN: ${pan}).\n\n- Recommended Regime: ${(chosenRegime || 'new').toUpperCase()} Regime\n- Final Tax: ₹${finalTax.toLocaleString("en-IN")}\n- ${refundDue > 0 ? `Refund Due: ₹${refundDue.toLocaleString("en-IN")}` : `Balance Payable: ₹${taxPayable.toLocaleString("en-IN")}`}\n\nPlease click the link below to review and approve your return:\n${clientPortalUrl}\n\nThank you,\nTIQTAX`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(clientPortalUrl);
@@ -365,23 +365,25 @@ export default function TaxComputationDossier({
   return (
     <>
       <CModal visible={visible} onClose={onClose} size="xl" backdrop="static">
-        <CModalHeader style={{ background: "linear-gradient(135deg, #0b1f3a 0%, #1e3a8a 100%)", color: "#fff" }}>
+        {/* Signature Logo Colors Top Stripe */}
+        <div style={{ height: "3.5px", background: "linear-gradient(90deg, #F87826 0%, #FCB21F 22%, #E83E8C 52%, #A020C0 78%, #0A8E4B 100%)", width: "100%" }} />
+        <CModalHeader style={{ background: "linear-gradient(135deg, rgba(248, 120, 38, 0.05) 0%, rgba(232, 62, 140, 0.04) 30%, rgba(160, 32, 192, 0.04) 65%, rgba(10, 142, 75, 0.05) 100%)", color: "#252525", borderBottom: "1px solid #edf2f7" }}>
           <div className="d-flex justify-content-between align-items-center w-100 pe-3">
             <div>
-              <CModalTitle style={{ fontWeight: "800", fontSize: "18px" }}>
+              <CModalTitle style={{ fontWeight: "800", fontSize: "18px", color: "#252525" }}>
                 📜 Official Tax Computation Sheet &amp; E-Filing Dossier
               </CModalTitle>
-              <div style={{ fontSize: "12px", opacity: 0.85 }}>
+              <div style={{ fontSize: "12px", color: "#64748b" }}>
                 AY {assessmentYear} • PAN: {pan} • Client: {client.name}
               </div>
             </div>
             <CBadge color={chosenRegime === "new" ? "warning" : "light"} className="text-dark fw-bold px-3 py-2">
-              {chosenRegime.toUpperCase()} REGIME SELECTED
+              {(chosenRegime || 'new').toUpperCase()} REGIME SELECTED
             </CBadge>
           </div>
         </CModalHeader>
 
-        <CModalBody className="p-4" style={{ background: "#f8fafc" }}>
+        <CModalBody className="p-4" style={{ background: "linear-gradient(145deg, #fdf9f6 0%, #fef5f9 30%, #fbf3fc 65%, #f4fbf7 100%)" }}>
           {/* TOP ACTION BAR: DOWNLOAD BUTTONS & SHARE */}
           <div
             style={{
@@ -399,7 +401,7 @@ export default function TaxComputationDossier({
             }}
           >
             <div>
-              <div style={{ fontWeight: "800", color: "#0f172a", fontSize: "15px" }}>
+              <div style={{ fontWeight: "800", color: "#252525", fontSize: "15px" }}>
                 Export &amp; Share Official Deliverables
               </div>
               <div style={{ fontSize: "12px", color: "#64748b" }}>
@@ -408,43 +410,54 @@ export default function TaxComputationDossier({
             </div>
 
             <div className="d-flex align-items-center gap-2 flex-wrap">
-              {/* 1. Download Official JSON */}
+              {/* 1. Download Official JSON (Solid Primary Green #0A8E4B) */}
               <CButton
                 color="primary"
                 className="fw-bold d-flex align-items-center gap-2"
                 onClick={handleDownloadJson}
                 style={{
-                  background: "linear-gradient(135deg, #0b3d91 0%, #1a5bb8 100%)",
+                  background: "#0A8E4B",
                   border: "none",
                   borderRadius: "8px",
                   padding: "9px 18px",
+                  color: "#ffffff",
+                  boxShadow: "0 2px 8px rgba(10, 142, 75, 0.25)",
                 }}
               >
                 <span>📥</span> Download Official JSON (ITD Schema)
               </CButton>
 
-              {/* 2. Download / Print PDF Statement */}
+              {/* 2. Download / Print PDF Statement (Solid Purple #A020C0) */}
               <CButton
                 color="success"
                 className="fw-bold d-flex align-items-center gap-2 text-white"
                 onClick={handlePrintPdf}
                 style={{
-                  background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                  background: "#A020C0",
                   border: "none",
                   borderRadius: "8px",
                   padding: "9px 18px",
+                  color: "#ffffff",
+                  boxShadow: "0 2px 8px rgba(160, 32, 192, 0.25)",
                 }}
               >
                 <span>🖨️</span> Download / Print PDF Statement
               </CButton>
 
-              {/* 3. Share with Client (if CA) */}
+              {/* 3. Share with Client (if CA - Solid Warm Orange #F87826) */}
               {isCA && (
                 <CButton
                   color="warning"
-                  className="fw-bold d-flex align-items-center gap-1 text-dark"
+                  className="fw-bold d-flex align-items-center gap-1 text-white"
                   onClick={() => setShowShareModal(true)}
-                  style={{ borderRadius: "8px", padding: "9px 18px" }}
+                  style={{
+                    background: "#F87826",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "9px 18px",
+                    color: "#ffffff",
+                    boxShadow: "0 2px 8px rgba(248, 120, 38, 0.25)",
+                  }}
                 >
                   <span>📲</span> Share with Client
                 </CButton>
@@ -474,7 +487,7 @@ export default function TaxComputationDossier({
                 </div>
               </div>
               <div className="text-end">
-                <div style={{ fontWeight: "800", color: "#0b3d91", fontSize: "16px" }}>
+                <div style={{ fontWeight: "800", color: "#F02186", fontSize: "16px" }}>
                   PAN: {pan}
                 </div>
                 <div style={{ fontSize: "13px", color: "#334155", fontWeight: "600" }}>
@@ -652,16 +665,16 @@ export default function TaxComputationDossier({
               </div>
               <div
                 style={{
-                  background: "#eff6ff",
-                  border: "1px solid #bfdbfe",
+                  background: "#f0fbf5",
+                  border: "1px solid #a3e6be",
                   borderRadius: "8px",
                   padding: "6px 14px",
                   fontSize: "12px",
                   fontWeight: "700",
-                  color: "#1e3a8a",
+                  color: "#0A8E4B",
                 }}
               >
-                VERIFIED BY CA TAX PORTAL ✓
+                VERIFIED BY TIQTAX ✓
               </div>
             </div>
           </div>
@@ -671,10 +684,10 @@ export default function TaxComputationDossier({
           <CButton color="secondary" onClick={onClose}>
             Close
           </CButton>
-          <CButton color="primary" onClick={handleDownloadJson} style={{ fontWeight: "700" }}>
+          <CButton onClick={handleDownloadJson} style={{ fontWeight: "700", background: "#0A8E4B", color: "#fff", border: "none" }}>
             📥 Download Official JSON
           </CButton>
-          <CButton color="success" onClick={handlePrintPdf} className="text-white" style={{ fontWeight: "700" }}>
+          <CButton onClick={handlePrintPdf} className="text-white" style={{ fontWeight: "700", background: "#0A8E4B", border: "none" }}>
             🖨️ Export / Print PDF Statement
           </CButton>
         </CModalFooter>
@@ -682,8 +695,9 @@ export default function TaxComputationDossier({
 
       {/* ══════════ SHARE WITH CLIENT POPUP MODAL ══════════ */}
       <CModal visible={showShareModal} onClose={() => setShowShareModal(false)}>
-        <CModalHeader style={{ background: "#0b3d91", color: "#fff" }}>
-          <CModalTitle style={{ fontWeight: "800", fontSize: "16px" }}>
+        <div style={{ height: "3.5px", background: "linear-gradient(90deg, #F87826 0%, #FCB21F 22%, #E83E8C 52%, #A020C0 78%, #0A8E4B 100%)", width: "100%" }} />
+        <CModalHeader style={{ background: "linear-gradient(135deg, rgba(248, 120, 38, 0.05) 0%, rgba(232, 62, 140, 0.04) 30%, rgba(160, 32, 192, 0.04) 65%, rgba(10, 142, 75, 0.05) 100%)", color: "#252525", borderBottom: "1px solid #edf2f7" }}>
+          <CModalTitle style={{ fontWeight: "800", fontSize: "16px", color: "#252525" }}>
             📲 Share Tax Return File with Client
           </CModalTitle>
         </CModalHeader>

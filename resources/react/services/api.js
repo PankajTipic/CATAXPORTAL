@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../utils/config';
+import { API_BASE_URL, buildApiUrl } from '../utils/config';
 
 /**
  * Get stored auth token for admin requests
@@ -13,7 +13,7 @@ const getAuthHeaders = () => {
  * @param {Object} data { name, email, subject, message }
  */
 export const submitContactForm = async (data) => {
-  const response = await fetch(`${API_BASE_URL}/contact`, {
+  const response = await fetch(buildApiUrl('/api/contact'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -34,7 +34,7 @@ export const submitContactForm = async (data) => {
  * @param {Object} credentials { email, password }
  */
 export const adminLogin = async (credentials) => {
-  const response = await fetch(`${API_BASE_URL}/admin/login`, {
+  const response = await fetch(buildApiUrl('/api/admin/login'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -54,7 +54,7 @@ export const adminLogin = async (credentials) => {
  * Fetch contacts list (Admin)
  */
 export const getContacts = async () => {
-  const response = await fetch(`${API_BASE_URL}/admin/contacts`, {
+  const response = await fetch(buildApiUrl('/api/admin/contacts'), {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ export const getContacts = async () => {
  * @param {number|string} id 
  */
 export const deleteContact = async (id) => {
-  const response = await fetch(`${API_BASE_URL}/admin/contacts/${id}`, {
+  const response = await fetch(buildApiUrl(`/api/admin/contacts/${id}`), {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
@@ -95,7 +95,7 @@ export const deleteContact = async (id) => {
  * Get current admin profile
  */
 export const getAdminProfile = async () => {
-  const response = await fetch(`${API_BASE_URL}/admin/profile`, {
+  const response = await fetch(buildApiUrl('/api/admin/profile'), {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -116,7 +116,7 @@ export const getAdminProfile = async () => {
  * @param {Object} profileData { name, email, current_password, password, password_confirmation }
  */
 export const updateAdminProfile = async (profileData) => {
-  const response = await fetch(`${API_BASE_URL}/admin/profile`, {
+  const response = await fetch(buildApiUrl('/api/admin/profile'), {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -138,7 +138,7 @@ export const updateAdminProfile = async (profileData) => {
  */
 export const adminLogout = async () => {
   try {
-    await fetch(`${API_BASE_URL}/admin/logout`, {
+    await fetch(buildApiUrl('/api/admin/logout'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

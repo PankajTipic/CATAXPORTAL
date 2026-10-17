@@ -28,28 +28,157 @@ function extractText(text, ...patterns) {
   return null;
 }
 
-// Extract all text from a PDF File using pdfjs-dist
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
+
+// Helper: extract printable ASCII text strings directly from binary buffer
+function extractRawBufferText(arrayBuffer) {
+  try {
+    const bytes = new Uint8Array(arrayBuffer);
+    let str = '';
+    const len = Math.min(bytes.length, 1000000); // scan up to 1MB
+    for (let i = 0; i < len; i++) {
+      const c = bytes[i];
+      if ((c >= 32 && c <= 126) || c === 10 || c === 13 || c === 9) {
+        str += String.fromCharCode(c);
+      } else if (c === 0) {
+        str += ' ';
+      }
+    }
+    return str;
+  } catch (e) {
+    return '';
+  }
+}
+
+// Extract all text from a PDF File using pdfjs-dist with multi-level fallbacks
 export async function extractPdfText(file) {
   const arrayBuffer = await file.arrayBuffer();
-  const pdfjsLib = await import('pdfjs-dist');
+
   try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-      'pdfjs-dist/build/pdf.worker.mjs',
-      import.meta.url
-    ).toString();
-  } catch (e) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '3.11.174'}/pdf.worker.min.js`;
+    const pdfjsLib = await import('pdfjs-dist');
+    try {
+      if (pdfWorkerUrl) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+      } else {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version || '6.3.289'}/build/pdf.worker.min.mjs`;
+      }
+    } catch (wErr) {
+      console.warn('PDF Worker assignment notice:', wErr);
+    }
+
+    const pdf = await pdfjsLib.getDocument({
+      data: arrayBuffer,
+      useSystemFonts: true,
+      stopAtErrors: false,
+    }).promise;
+
+    const pages = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items.map(item => item.str).join(' ');
+      pages.push(pageText);
+    }
+    const fullText = pages.join('\n');
+    if (fullText && fullText.trim().length > 30) {
+      return fullText;
+    }
+  } catch (pdfErr) {
+    console.warn('PDF.js parser error, attempting binary stream extraction fallback:', pdfErr);
   }
 
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const pages = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const pageText = content.items.map(item => item.str).join(' ');
-    pages.push(pageText);
+  // Fallback 1: Extract ASCII text blocks directly from arrayBuffer
+  const bufferText = extractRawBufferText(arrayBuffer);
+  if (bufferText && bufferText.trim().length > 40) {
+    return bufferText;
   }
-  return pages.join('\n');
+
+  return '';
+}
+
+// Standard Sample Form 16 Text generator for testing & dummy files
+export function getSampleForm16Text(pan = 'ABCDE1234F') {
+  return `
+FORM NO. 16
+[See rule 31(1)(a)]
+PART A & PART B
+Certificate under section 203 of the Income-tax Act, 1961 for tax deducted at source on salary
+Certificate No: TRACES-2026-F16-8947291
+Last updated on: 15-May-2026
+Applicable ITR: ITR-1 (SAHAJ)
+Assessment Year: 2026-27
+Period with the Employer: From: 01-Apr-2025 To: 31-Mar-2026
+CIT (TDS): CIT (TDS) Bengaluru
+
+Name and address of the Employer:
+Infosys Tech Solutions India Pvt Ltd
+Electronics City, Hosur Road, Bengaluru - 560100
+PAN of Deductor: AAACI1234K
+TAN of Deductor: BLRI01234D
+
+Name and address of the Employee:
+Rajesh Kumar Sharma
+Flat 402, Green Glen Layout, Bellandur, Bengaluru - 560103
+PAN of Employee: ${pan || 'ABCDE1234F'}
+Employee Reference No: EMP-98214
+
+Summary of Tax Deducted at Source:
+Q1 (01-Apr-2025 to 30-Jun-2025) RCPT019283 3,62,500 45,600 45,600
+Q2 (01-Jul-2025 to 30-Sep-2025) RCPT029384 3,62,500 45,600 45,600
+Q3 (01-Oct-2025 to 31-Dec-2025) RCPT039485 3,62,500 45,600 45,600
+Q4 (01-Jan-2026 to 31-Mar-2026) RCPT049586 3,62,500 45,600 45,600
+Total 14,50,000 1,82,400 1,82,400
+
+PART B - Details of Salary paid and any other income and tax deducted
+1. Gross Salary:
+(a) Salary as per provisions contained in sec 17(1): 14,50,000
+(b) Value of perquisites u/s 17(2): 0
+(c) Profits in lieu of salary under section 17(3): 0
+(d) Total: 14,50,000
+
+2. Less: Allowances to the extent exempt under section 10:
+House Rent Allowance u/s 10(13A): 1,20,000
+Total: 1,20,000
+
+3. Deductions under section 16:
+(a) Standard Deduction u/s 16(ia): 50,000
+(b) Tax on Employment u/s 16(iii): 2,500
+Total: 52,500
+
+Income chargeable under the head 'Salaries' (1 - 2 - 3): 12,77,500
+
+4. Deductions under Chapter VI-A:
+Section 80C: 1,50,000
+Section 80D: 25,000
+80CCD(1B): 50,000
+Total Deduction under Chapter VI-A: 2,25,000
+
+5. Total Taxable Income: 10,52,500
+6. Tax on Total Income: 1,28,000
+7. Health & Education Cess @ 4%: 5,120
+8. Total Tax Payable: 1,33,120
+9. Total Tax Deducted at Source: 1,82,400
+10. Tax (Refundable) / Payable: 49,280 (Refundable)
+`;
+}
+
+// Standard Sample Form 26AS Text generator for testing & dummy files
+export function getSampleForm26asText(pan = 'ABCDE1234F') {
+  return `
+FORM NO. 26AS
+Annual Tax Statement under Section 203AA of the Income-tax Act, 1961
+Financial Year: 2025-26
+Assessment Year: 2026-27
+Permanent Account Number (PAN): ${pan || 'ABCDE1234F'}
+Name of Assessee: Rajesh Kumar Sharma
+
+PART A - Details of Tax Deducted at Source
+Total TDS Credit: 1,82,400
+Salary u/s 192: 1,82,400
+Interest other than section 194A: 18,200
+Advance Tax: 0
+Self-Assessment Tax: 0
+`;
 }
 
 // Parse Form 16 quarterly table

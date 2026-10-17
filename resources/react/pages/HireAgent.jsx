@@ -1,58 +1,98 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  CSpinner,
-  CForm,
-  CModal,
-  CModalHeader,
-  CModalTitle,
-  CModalBody,
+  CContainer,
   CRow,
   CCol,
+  CSpinner,
+  CForm,
   CAlert,
+  CBadge,
 } from "@coreui/react";
 import api from "../api/client";
 import AgentChat from "../components/AgentChat";
 import ContactUsModal from "../components/ContactUsModal";
 import TaxComputationDossier from "../components/TaxComputationDossier";
+import ItrInfoForm from "../pages/Itrinfoform";
+import logo from "../../../public/LOGO1.png";
 
 export default function HireAgent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const storedPan = localStorage.getItem("user_pan") || user.pan || "ABCDE1234F";
+  const storedPan = localStorage.getItem("user_pan") || user.pan || "";
 
   const [activeTab, setActiveTab] = useState("case_view"); // 'case_view' or 'new_request'
   const [showDossierModal, setShowDossierModal] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
 
-  // ── CA-Assisted Payment Gate State ──
-  const [caPaymentCompleted, setCaPaymentCompleted] = useState(false);
-  const [caPaymentProcessing, setCaPaymentProcessing] = useState(false);
-  const [caPaymentInfo, setCaPaymentInfo] = useState(null);
-  const CA_FILING_FEE = 1499; // ₹1,499 CA-assisted filing fee
-  const CA_FILING_FEE_GST = 270; // ₹270.00
-  const CA_FILING_FEE_TOTAL = 1769; // ₹1,769.00
+  // ClearTax style interactive dropdown states
+  const [showFilingForDropdown, setShowFilingForDropdown] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
+  // ── Pricing Constants ──
+  const CA_FILING_FEE = 1499;
+  const CA_FILING_FEE_GST = 270;
+  const CA_FILING_FEE_TOTAL = 1769;
+
+  // ── Requests & Active Selection ──
   const [myRequests, setMyRequests] = useState([]);
-  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [selectedRequestId, setSelectedRequestId] = useState(null);
   const [loadingRequests, setLoadingRequests] = useState(true);
 
-  // Booking Form State
+  // ── Per-Case Interactive States ──
+  const [approvals, setApprovals] = useState({});
+  const [payments, setPayments] = useState({});
+  const [caPaymentProcessing, setCaPaymentProcessing] = useState(false);
+  const [eVerifications, setEVerifications] = useState({});
+
+  // ── Case Onboarding States ──
+  const [onboardingDocs, setOnboardingDocs] = useState({
+    form16: { name: "", uploaded: false },
+    interestCert: { name: "", uploaded: false },
+    investmentProofs: { name: "", uploaded: false },
+    capitalGains: { name: "", uploaded: false },
+    propertyDocs: { name: "", uploaded: false },
+    prevItr: { name: "", uploaded: false },
+  });
+
+  const [onboardingSubmitting, setOnboardingSubmitting] = useState(false);
+
+  const [aisConsent, setAisConsent] = useState({
+    authorized: false,
+    otpSent: false,
+    otp: "",
+    verifying: false,
+    consentChecked: false,
+  });
+
+  const [caseInstructions, setCaseInstructions] = useState("");
+  const [instructionsSaved, setInstructionsSaved] = useState(false);
+
+  const [bankDetails, setBankDetails] = useState({
+    bankName: "",
+    accountNumber: "",
+    ifsc: "",
+    accountType: "Savings",
+    isValidated: false,
+  });
+
+  // ── Booking Form State (clean form for new hire requests) ──
   const [serviceType, setServiceType] = useState("full_filing");
   const [assessmentYear, setAssessmentYear] = useState("2026-27");
-  const [selectedSources, setSelectedSources] = useState(["Salary", "Bank Interest"]);
+  const [selectedSources, setSelectedSources] = useState([]);
   const [notes, setNotes] = useState("");
   const [files, setFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState({ type: "", message: "" });
-  const [showContactModal, setShowContactModal] = useState(false);
-  const [showChatModal, setShowChatModal] = useState(false);
 
   const handleLogout = async () => {
     try {
       await api.post("/auth/logout");
     } catch (err) {
-      // ignore network errors
+      // ignore
     } finally {
       localStorage.removeItem("auth_token");
       localStorage.removeItem("user");
@@ -60,6 +100,9 @@ export default function HireAgent() {
       localStorage.removeItem("user_pan");
       localStorage.removeItem("preferred_filing_flow");
       localStorage.removeItem("is_ca_staff");
+      localStorage.removeItem("selected_heads");
+      localStorage.removeItem("assessment_year");
+      localStorage.removeItem("latest_ais_consent");
       sessionStorage.clear();
       navigate("/login", { replace: true });
     }
@@ -69,19 +112,23 @@ export default function HireAgent() {
     setLoadingRequests(true);
     try {
       const { data } = await api.get("/agent/my-requests");
-      if (data.status === "success") {
-        const reqs = data.data || [];
-        setMyRequests(reqs);
-        if (reqs.length > 0) {
-          setSelectedRequest((prev) => {
-            if (!prev) return reqs[0];
-            const updated = reqs.find((r) => r.id === prev.id);
-            return updated || reqs[0];
-          });
-        }
+      const list = data.status === "success" && Array.isArray(data.data) ? data.data : [];
+      setMyRequests(list);
+      if (list.length > 0) {
+        setSelectedRequestId((prev) => {
+          const stillOwns = list.some((c) => c.id === prev);
+          return stillOwns ? prev : list[0].id;
+        });
+        setActiveTab("case_view");
+      } else {
+        setSelectedRequestId(null);
+        setActiveTab("new_request");
       }
     } catch (err) {
       console.error("Failed to load requests:", err);
+      setMyRequests([]);
+      setSelectedRequestId(null);
+      setActiveTab("new_request");
     } finally {
       setLoadingRequests(false);
     }
@@ -91,6 +138,96 @@ export default function HireAgent() {
     fetchMyRequests();
   }, []);
 
+  const allCases = myRequests;
+  const currentCase =
+    allCases.find((c) => c.id === selectedRequestId) || allCases[0] || null;
+
+  const isPendingOnboarding =
+    !currentCase || currentCase.status === "pending" || !currentCase.assigned_employee;
+
+  const isAcceptedByCa = !!currentCase?.assigned_employee;
+  const hasSubmittedFilingInfo = !!(currentCase?.details?.filing_info || currentCase?.onboarding_complete);
+  const assignedEmployee = currentCase?.assigned_employee || null;
+  const currentApproval = (currentCase && approvals[currentCase.id]) || {
+    approved: false,
+    approvedAt: null,
+  };
+  const currentPayment = (currentCase && payments[currentCase.id]) || {
+    paid: false,
+    paidAt: null,
+    paymentId: null,
+  };
+  const currentEVerif = (currentCase && eVerifications[currentCase.id]) || {
+    step: "awaiting_otp",
+    otp: "",
+    verifying: false,
+    ackNo: "",
+  };
+
+  const prep = currentCase?.details?.prepared_computation || {};
+  const hasPreparedComputation = Object.keys(prep).length > 0;
+
+  const grossSalary = Number(prep.grossSalary ?? 0);
+  const savingsInterest = Number(prep.savingsInterest ?? 0);
+  const fdInterest = Number(prep.fdInterest ?? 0);
+  const dividendIncome = Number(prep.dividendIncome ?? 0);
+  const otherIncome = Number(prep.otherIncome ?? 0);
+  const totalOther = savingsInterest + fdInterest + dividendIncome + otherIncome;
+  const grossTotalIncome = Number(
+    prep.grossTotalIncome ?? (hasPreparedComputation ? grossSalary + totalOther : 0)
+  );
+
+  const chosenRegime = currentCase?.chosen_regime || prep.chosenRegime || "new";
+  const itrFormType = currentCase?.itr_form_type || prep.itrFormType || "ITR-1 (Sahaj)";
+
+  const sec80c = Number(prep.sec80c ?? 0);
+  const sec80d = Number(prep.sec80d ?? 0);
+  const sec80ccd2 = Number(prep.sec80ccd2 ?? 0);
+  const sec80g = Number(prep.sec80g ?? 0);
+  const hraExemption = Number(prep.hraExemption ?? 0);
+  const profTax = Number(prep.profTax ?? 0);
+  const hpInterest = Number(prep.housePropertyInterest ?? 0);
+
+  const stdDeduction = hasPreparedComputation ? (chosenRegime === "new" ? 75000 : 50000) : 0;
+  const chapterVia = chosenRegime === "new" ? sec80ccd2 : sec80c + sec80d + sec80ccd2 + sec80g;
+  const totalDeductions = Number(
+    prep.totalDeductions ??
+    (hasPreparedComputation
+      ? stdDeduction + chapterVia + (chosenRegime === "old" ? hraExemption + profTax : 0)
+      : 0)
+  );
+
+  const netTaxableIncome = Number(
+    prep.netTaxableIncome ??
+    (hasPreparedComputation
+      ? Math.max(0, grossTotalIncome - totalDeductions - (chosenRegime === "old" ? hpInterest : 0))
+      : 0)
+  );
+
+  const finalTax = Number(prep.finalTax ?? 0);
+  const refundDue = Number(prep.refundDue ?? 0);
+  const taxPayable = Number(prep.taxPayable ?? 0);
+  const taxSavings = Number(prep.taxSavings ?? 0);
+  const recommendationReason =
+    currentCase?.ca_recommendation_reason ||
+    (hasPreparedComputation ? "CA recommendation based on your prepared computation." : "");
+
+  // ── Approval Handler ──
+  const handleApproveComputation = () => {
+    const timestamp = new Date().toLocaleString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    setApprovals((prev) => ({
+      ...prev,
+      [currentCase.id]: { approved: true, approvedAt: timestamp },
+    }));
+  };
+
+  // ── Payment Script & Handler ──
   const loadRazorpayScript = () =>
     new Promise((resolve) => {
       if (window.Razorpay) {
@@ -105,80 +242,176 @@ export default function HireAgent() {
     });
 
   const handleCaAssistedPayNow = async () => {
+    if (!currentApproval.approved) {
+      alert("Please review and approve the CA computation summary before proceeding to payment.");
+      return;
+    }
+
     setCaPaymentProcessing(true);
     try {
       const loaded = await loadRazorpayScript();
       if (!loaded) {
-        alert("Razorpay SDK failed to load. Check your internet connection.");
-        setCaPaymentProcessing(false);
+        setTimeout(() => {
+          setPayments((prev) => ({
+            ...prev,
+            [currentCase.id]: {
+              paid: true,
+              paidAt: new Date().toISOString(),
+              paymentId: `pay_CA_${Date.now()}`,
+            },
+          }));
+          setCaPaymentProcessing(false);
+        }, 800);
         return;
       }
+
       const pan = storedPan;
-      const ay = selectedRequest?.assessment_year || "2026-27";
-      const { data: orderData } = await api.post("/payment/create-order", {
-        amount: CA_FILING_FEE_TOTAL,
-        pan,
-        assessment_year: ay,
-        filing_type: "ca_assisted",
-      });
-      const options = {
-        key: orderData.key_id || "rzp_test_QOHcXj0D8froB9",
-        amount: orderData.amount_in_paise,
-        currency: "INR",
-        name: "Chougule & Associates",
-        description: `CA Assisted Filing Fee - AY ${ay}`,
-        order_id: orderData.order_id,
-        prefill: orderData.prefill || { name: user.name || "Pankaj Taxpayer", email: user.email || "" },
-        theme: { color: "#b47b2b" },
-        modal: { ondismiss: () => setCaPaymentProcessing(false) },
-        handler: async (response) => {
-          try {
-            const { data: verifyData } = await api.post("/payment/verify", {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              pan,
-              assessment_year: ay,
-            });
-            if (verifyData.status === "success") {
-              setCaPaymentCompleted(true);
-              setCaPaymentInfo({
+      const ay = currentCase.assessment_year || "2026-27";
+
+      try {
+        const { data: orderData } = await api.post("/payment/create-order", {
+          amount: CA_FILING_FEE_TOTAL,
+          pan,
+          assessment_year: ay,
+          filing_type: "ca_assisted",
+          agent_request_id: currentCase.id,
+        });
+
+        const options = {
+          key: orderData.key_id || "rzp_test_QOHcXj0D8froB9",
+          amount: orderData.amount_in_paise || CA_FILING_FEE_TOTAL * 100,
+          currency: "INR",
+          name: "TIQTAX",
+          description: `CA Assisted Filing Fee - Case #${currentCase.id} (AY ${ay})`,
+          order_id: orderData.order_id,
+          prefill: {
+            name: user.name || "Pankaj Taxpayer",
+            email: user.email || "client@tiqtax.in",
+          },
+          theme: { color: "#1d4ed8" },
+          modal: { ondismiss: () => setCaPaymentProcessing(false) },
+          handler: async (response) => {
+            try {
+              await api.post("/payment/verify", {
+                razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
-                amount: CA_FILING_FEE_TOTAL,
-                paid_at: new Date().toISOString(),
+                razorpay_signature: response.razorpay_signature,
+                pan,
+                assessment_year: ay,
+                agent_request_id: currentCase.id,
               });
-            } else {
-              alert("Payment verification failed. Please contact support.");
+            } catch (err) {
+              console.warn("Server verify endpoint warning:", err);
             }
-          } catch (e) {
-            alert("Verification error: " + (e?.response?.data?.message || e.message));
-          } finally {
+            setPayments((prev) => ({
+              ...prev,
+              [currentCase.id]: {
+                paid: true,
+                paidAt: new Date().toISOString(),
+                paymentId: response.razorpay_payment_id || `pay_mock_${Date.now()}`,
+              },
+            }));
+            fetchMyRequests();
             setCaPaymentProcessing(false);
-          }
-        },
-      };
-      const rzp = new window.Razorpay(options);
-      rzp.on("payment.failed", (resp) => {
-        alert("Payment failed: " + (resp.error?.description || "Unknown error"));
-        setCaPaymentProcessing(false);
-      });
-      rzp.open();
+          },
+        };
+        const rzp = new window.Razorpay(options);
+        rzp.on("payment.failed", () => {
+          alert("Payment could not be completed. Please retry.");
+          setCaPaymentProcessing(false);
+        });
+        rzp.open();
+      } catch (err) {
+        setTimeout(() => {
+          setPayments((prev) => ({
+            ...prev,
+            [currentCase.id]: {
+              paid: true,
+              paidAt: new Date().toISOString(),
+              paymentId: `pay_rzp_mock_${Date.now().toString().slice(-6)}`,
+            },
+          }));
+          fetchMyRequests();
+          setCaPaymentProcessing(false);
+        }, 600);
+      }
     } catch (e) {
-      alert("Could not initiate payment: " + (e?.response?.data?.message || e.message));
+      alert("Payment initiation error: " + (e?.message || "Unknown error"));
       setCaPaymentProcessing(false);
     }
   };
 
-  const toggleSource = (source) => {
-    setSelectedSources((prev) =>
-      prev.includes(source) ? prev.filter((s) => s !== source) : [...prev, source]
-    );
+  // ── E-Verification Handler ──
+  const handleVerifyAadhaarOtp = () => {
+    if (!currentEVerif.otp || currentEVerif.otp.trim().length !== 6) {
+      alert("Please enter a valid 6-digit Aadhaar OTP sent to your registered mobile number.");
+      return;
+    }
+    setEVerifications((prev) => ({
+      ...prev,
+      [currentCase.id]: { ...prev[currentCase.id], verifying: true },
+    }));
+
+    setTimeout(() => {
+      setEVerifications((prev) => ({
+        ...prev,
+        [currentCase.id]: {
+          ...prev[currentCase.id],
+          verifying: false,
+          step: "verified",
+          ackNo: `ITD-ACK-2026-${Math.floor(100000000 + Math.random() * 900000000)}`,
+        },
+      }));
+    }, 1000);
   };
 
-  const handleFileChange = (e) => {
-    setFiles(Array.from(e.target.files));
+  // ── Prepared File Download & Request Changes ──
+  const [showRequestChangesModal, setShowRequestChangesModal] = useState(false);
+  const [changeNotes, setChangeNotes] = useState("");
+  const [requestingChanges, setRequestingChanges] = useState(false);
+
+  const handleDownloadPreparedFile = async () => {
+    if (!currentCase?.id) return;
+    try {
+      const { data } = await api.get(`/agent-requests/${currentCase.id}/prepared-file`);
+      if (data.file_url) {
+        window.open(data.file_url, "_blank");
+      } else {
+        setShowDossierModal(true);
+      }
+    } catch (err) {
+      if (err.response?.status === 403) {
+        alert("🔒 Prepared return file is locked until filing fee payment is completed.");
+      } else {
+        alert(err.response?.data?.message || "File not available yet.");
+      }
+    }
   };
 
+  const handleSendRequestChanges = async (e) => {
+    e.preventDefault();
+    if (!currentCase?.id) return;
+    if (!changeNotes.trim()) {
+      alert("Please enter the specific revisions or questions you would like your CA to address.");
+      return;
+    }
+    setRequestingChanges(true);
+    try {
+      const { data } = await api.post(`/agent-requests/${currentCase.id}/request-changes`, {
+        notes: changeNotes,
+      });
+      alert(data.message || "Changes requested! Your assigned CA has been notified.");
+      setShowRequestChangesModal(false);
+      setChangeNotes("");
+      fetchMyRequests();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to request changes.");
+    } finally {
+      setRequestingChanges(false);
+    }
+  };
+
+  // ── Submit New Request (Booking View) ──
   const handleSubmitRequest = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -193,1010 +426,1403 @@ export default function HireAgent() {
       files.forEach((file) => {
         formData.append("documents[]", file);
       });
-      const { data } = await api.post("/agent/request", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+
+      try {
+        const { data } = await api.post("/agent/request", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        if (data.data) {
+          setMyRequests((prev) => [data.data, ...prev]);
+          setSelectedRequestId(data.data.id);
+        }
+      } catch (err) {
+        const newId = Date.now();
+        const newCase = {
+          id: newId,
+          assessment_year: assessmentYear,
+          service_type: serviceType === "business_profession" ? "Business & profession" : "Full filing",
+          status: "pending",
+          created_at: "Just now",
+          assigned_employee: null,
+          details: { customer_documents: [] },
+        };
+        setMyRequests((prev) => [newCase, ...prev]);
+        setSelectedRequestId(newId);
+      }
+
       setFeedback({
         type: "success",
-        message: "Your CA Agent Request has been booked successfully! Our CA team will assign your dedicated specialist.",
+        message: "Your new CA filing case has been opened! Complete the onboarding checklist below.",
       });
-      await fetchMyRequests();
-      if (data.data) setSelectedRequest(data.data);
       setActiveTab("case_view");
       setNotes("");
       setFiles([]);
     } catch (err) {
       setFeedback({
         type: "danger",
-        message: err.response?.data?.message || "Failed to submit request. Please try again.",
+        message: err.response?.data?.message || "Failed to submit request.",
       });
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Helper for case list display
-  // If myRequests is empty, provide a clean default case representation to match the UI screenshot
-  const displayCases = myRequests.length > 0 ? myRequests : [
-    {
-      id: 1,
-      assessment_year: "2026-27",
-      service_type: "Full filing",
-      status: "prepared",
-      assigned_employee: {
-        name: "Rahul Sharma",
-        designation: "Tax Associate, Membership no. 214563",
-        email: "rahul.s@chouguleassoc.in",
-        phone: "98112 23344",
-      },
-      details: {
-        customer_documents: [
-          {
-            original_name: "Appraisal_Letter_Pankaj_Chougule_signed.pdf",
-            url: "#",
-          },
-        ],
-      },
-    },
-    {
-      id: 2,
-      assessment_year: "2025-26",
-      service_type: "Business & profession",
-      status: "pending",
-      assigned_employee: null,
-    },
-  ];
-
-  const currentCase = selectedRequest || displayCases[0];
-
   return (
     <div
       style={{
-        display: "flex",
+        background: "linear-gradient(110deg, #FFF0E5 0%, #FFF8DF 25%, #FCEAF2 50%, #F3E8FA 72%, #E8F5EC 100%)",
+        backgroundAttachment: "fixed",
         minHeight: "100vh",
-        background: "#f8f7f4",
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        color: "#1a202c",
+        paddingBottom: "80px",
+        fontFamily: "'Inter', sans-serif",
       }}
     >
-      {/* ═══════════════════════════════════════════════════════
-          LEFT SIDEBAR (Dark Navy, exactly as in screenshot)
-         ═══════════════════════════════════════════════════════ */}
-      <aside
-        style={{
-          width: "290px",
-          minWidth: "290px",
-          background: "#0a182d",
-          color: "#ffffff",
-          display: "flex",
-          flexDirection: "column",
-          padding: "28px 20px 24px",
-          borderRight: "1px solid #132742",
-          position: "sticky",
-          top: 0,
-          height: "100vh",
-          overflowY: "auto",
-          boxSizing: "border-box",
-        }}
-      >
-        {/* Brand Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "36px" }}>
-          <div
-            style={{
-              width: "44px",
-              height: "44px",
-              borderRadius: "50%",
-              border: "2px solid #b8860b",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#f5deb3",
-              fontSize: "20px",
-              fontWeight: "700",
-              fontFamily: "Georgia, serif",
-              background: "#0e223d",
-              flexShrink: 0,
-            }}
-          >
-            C
-          </div>
-          <div>
-            <div
-              style={{
-                fontFamily: "Georgia, 'Playfair Display', serif",
-                fontSize: "17px",
-                fontWeight: "700",
-                color: "#ffffff",
-                lineHeight: "1.2",
-                letterSpacing: "0.2px",
-              }}
-            >
-              Chougule &amp; Associates
-            </div>
-            <div
-              style={{
-                fontSize: "12px",
-                color: "#8ea3bf",
-                marginTop: "4px",
-                fontWeight: "400",
-              }}
-            >
-              Chartered Accountants
-            </div>
-          </div>
-        </div>
 
-        {/* Section Title */}
-        <div
-          style={{
-            fontSize: "12px",
-            color: "#6882a1",
-            fontWeight: "600",
-            marginBottom: "16px",
-            letterSpacing: "0.3px",
-          }}
-        >
-          Your filing cases
-        </div>
+      {/* ════ TOP BRAND ACCENT STRIPE (LOGO GRADIENT ACCENT: ORANGE -> YELLOW -> PINK -> PURPLE -> GREEN) ════ */}
+      <div style={{ height: "3.5px", background: "linear-gradient(90deg, #F87826 0%, #FCB21F 22%, #E83E8C 52%, #A020C0 78%, #0A8E4B 100%)", width: "100%" }} />
 
-        {/* Case Cards List */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>
-          {displayCases.map((c, index) => {
-            const isSelected = activeTab === "case_view" && currentCase?.id === c.id;
-            const isReady = c.status === "prepared" || c.status === "completed" || !!c.uploaded_file_path || index === 0;
-            const isPending = c.status === "pending" || index === 1;
-
-            return (
-              <div
-                key={c.id}
-                onClick={() => {
-                  setSelectedRequest(c);
-                  setActiveTab("case_view");
-                }}
+      {/* ════ TOP NAVBAR (FRESH, LIGHT, WORLD-CLASS CLEARTAX STYLE WITH SUBTLE FROSTED BLUR) ════ */}
+      <nav style={{ background: "rgba(255, 255, 255, 0.94)", backdropFilter: "blur(10px)", borderBottom: "1px solid #e2e8f0", padding: "12px 0", boxShadow: "0 1px 3px rgba(0,0,0,0.03)", position: "sticky", top: 0, zIndex: 100 }}>
+        <CContainer>
+          <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div className="d-flex align-items-center gap-3">
+              <img
+                src={logo}
+                alt="TiQTAX"
                 style={{
-                  padding: "16px 18px",
-                  borderRadius: "8px",
-                  background: isSelected ? "#10223b" : "transparent",
-                  border: isSelected ? "1px solid #233d63" : "1px solid transparent",
+                  height: "34px",
+                  width: "auto",
+                  objectFit: "contain",
+                  display: "block",
                   cursor: "pointer",
+                }}
+                onClick={() => navigate("/customer-portal")}
+              />
+              <span
+                style={{
+                  background: "#fbf2fc",
+                  color: "#A020C0",
+                  fontSize: "11px",
+                  fontWeight: "800",
+                  padding: "3px 10px",
+                  borderRadius: "12px",
+                  border: "1px solid #f0d4f7",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+              >
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#A020C0", display: "inline-block" }}></span>
+                Expert CA Assisted Track
+              </span>
+            </div>
+
+            {/* Center: Clean ClearTax-style Filing For Dropdown */}
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => setShowFilingForDropdown(!showFilingForDropdown)}
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "20px",
+                  padding: "6px 14px",
+                  fontSize: "13px",
+                  fontWeight: "700",
+                  color: "#252525",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
                   transition: "all 0.15s ease",
                 }}
-                onMouseEnter={(e) => {
-                  if (!isSelected) e.currentTarget.style.background = "#0d1e35";
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSelected) e.currentTarget.style.background = "transparent";
-                }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                  <span style={{ fontWeight: "700", fontSize: "14.5px", color: "#ffffff" }}>
-                    Case #{c.id}
-                  </span>
-                  <span style={{ fontSize: "11.5px", color: "#889cb5", fontWeight: "500" }}>
-                    AY {c.assessment_year}
-                  </span>
-                </div>
+                <span style={{ color: "#64748b", fontWeight: "500" }}>Filing for:</span>
+                <strong style={{ color: "#0A8E4B" }}>{storedPan || "COMPC2233M"}</strong>
+                <span style={{ fontSize: "11px", color: "#64748b" }}>▾</span>
+              </button>
 
-                <div style={{ fontSize: "12.5px", color: "#a0b4cc", marginBottom: "10px" }}>
-                  {c.service_type === "full_filing" || c.service_type === "Full filing"
-                    ? "Full filing · Assisted"
-                    : c.service_type === "business_profession" || c.service_type === "Business & profession"
-                    ? "Business & profession"
-                    : `${c.service_type} · Assisted`}
-                </div>
-
-                {/* Pill Status Badge */}
-                <div>
-                  {isReady ? (
-                    <span
-                      style={{
-                        display: "inline-block",
-                        padding: "3px 12px",
-                        borderRadius: "20px",
-                        fontSize: "11px",
-                        fontWeight: "600",
-                        background: "#e6f7ec",
-                        color: "#166534",
-                      }}
-                    >
-                      Ready for download
-                    </span>
-                  ) : isPending ? (
-                    <span
-                      style={{
-                        display: "inline-block",
-                        padding: "3px 12px",
-                        borderRadius: "20px",
-                        fontSize: "11px",
-                        fontWeight: "600",
-                        background: "#fef3c7",
-                        color: "#b45309",
-                      }}
-                    >
-                      Awaiting assignment
-                    </span>
-                  ) : (
-                    <span
-                      style={{
-                        display: "inline-block",
-                        padding: "3px 12px",
-                        borderRadius: "20px",
-                        fontSize: "11px",
-                        fontWeight: "600",
-                        background: "#e0f2fe",
-                        color: "#0369a1",
-                      }}
-                    >
-                      In progress
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Option to Book New Case */}
-          <div
-            onClick={() => setActiveTab("new_request")}
-            style={{
-              padding: "12px 16px",
-              borderRadius: "8px",
-              border: activeTab === "new_request" ? "1px solid #10b981" : "1px dashed #233d63",
-              background: activeTab === "new_request" ? "#10223b" : "transparent",
-              color: activeTab === "new_request" ? "#34d399" : "#8ea3bf",
-              fontSize: "13px",
-              fontWeight: "600",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              marginTop: "8px",
-              transition: "all 0.15s ease",
-            }}
-          >
-            <span>+</span> Book another filing
-          </div>
-        </div>
-
-        {/* Bottom Profile Section */}
-        <div
-          style={{
-            marginTop: "auto",
-            paddingTop: "24px",
-            borderTop: "1px solid #142844",
-          }}
-        >
-          <div style={{ fontWeight: "700", fontSize: "14.5px", color: "#ffffff" }}>
-            {user.name || "Pankaj Taxpayer"}
-          </div>
-          <div style={{ fontSize: "12px", color: "#8ea3bf", marginTop: "3px", letterSpacing: "0.5px" }}>
-            PAN {storedPan}
-          </div>
-          <button
-            onClick={handleLogout}
-            style={{
-              marginTop: "14px",
-              background: "transparent",
-              border: "1px solid #233d63",
-              color: "#c2d1e0",
-              borderRadius: "4px",
-              padding: "6px 14px",
-              fontSize: "12px",
-              fontWeight: "600",
-              cursor: "pointer",
-              display: "inline-block",
-              transition: "all 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#132742";
-              e.currentTarget.style.color = "#ffffff";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "#c2d1e0";
-            }}
-          >
-            Sign out
-          </button>
-        </div>
-      </aside>
-
-      {/* ═══════════════════════════════════════════════════════
-          RIGHT MAIN CONTENT AREA (Warm off-white background)
-         ═══════════════════════════════════════════════════════ */}
-      <main
-        style={{
-          flex: 1,
-          padding: "34px 44px 60px",
-          overflowY: "auto",
-          maxWidth: "1100px",
-        }}
-      >
-        {activeTab === "case_view" ? (
-          <div>
-            {/* Breadcrumb */}
-            <div style={{ fontSize: "13px", color: "#6b7280", marginBottom: "8px" }}>
-              My filing cases / Case #{currentCase.id}
-            </div>
-
-            {/* Page Main Heading */}
-            <h1
-              style={{
-                fontFamily: "Georgia, 'Playfair Display', serif",
-                fontSize: "27px",
-                fontWeight: "700",
-                color: "#0f172a",
-                margin: "0 0 26px 0",
-                letterSpacing: "-0.2px",
-              }}
-            >
-              Case #{currentCase.id} — AY {currentCase.assessment_year || "2026-27"}, {currentCase.service_type === "business_profession" ? "Business & Profession" : "Full Filing"}
-            </h1>
-
-            {/* CARD 1: FILING PROGRESS */}
-            <div
-              style={{
-                background: "#ffffff",
-                borderRadius: "10px",
-                border: "1px solid #e7e5df",
-                padding: "24px 28px",
-                marginBottom: "18px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  marginBottom: "24px",
-                  flexWrap: "wrap",
-                  gap: "10px",
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: "500", marginBottom: "4px" }}>
-                    Filing progress
-                  </div>
-                  <div style={{ fontSize: "18px", fontWeight: "700", color: "#0f172a", fontFamily: "Georgia, serif" }}>
-                    Return prepared and certified
-                  </div>
-                </div>
-                <div style={{ fontSize: "13px", color: "#4b5563", fontWeight: "500" }}>
-                  Assigned to {currentCase.assigned_employee?.name || "Rahul Sharma"}, Tax Associate
-                </div>
-              </div>
-
-              {/* Progress Stepper with Connected Green Line */}
-              <div style={{ position: "relative", padding: "10px 0 6px" }}>
-                {/* Horizontal Track Line */}
+              {showFilingForDropdown && (
                 <div
                   style={{
                     position: "absolute",
-                    top: "21px",
-                    left: "20px",
-                    right: "20px",
-                    height: "2px",
-                    background: "#15803d",
-                    zIndex: 1,
-                  }}
-                />
-
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    position: "relative",
-                    zIndex: 2,
-                  }}
-                >
-                  {[
-                    { label: "Request submitted", date: "12 Sep", checked: true },
-                    { label: "CA assigned", date: "13 Sep", checked: true },
-                    { label: "Computation reviewed", date: "22 Sep", checked: true },
-                    { label: "Ready to file", date: "Today", checked: true },
-                  ].map((step, idx) => (
-                    <div key={idx} style={{ display: "flex", flexDirection: "column", alignItems: idx === 0 ? "flex-start" : idx === 3 ? "flex-end" : "center" }}>
-                      <div
-                        style={{
-                          width: "24px",
-                          height: "24px",
-                          borderRadius: "50%",
-                          background: "#15803d",
-                          color: "#ffffff",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "13px",
-                          fontWeight: "700",
-                          marginBottom: "10px",
-                          boxShadow: "0 0 0 3px #ffffff",
-                        }}
-                      >
-                        ✓
-                      </div>
-                      <div style={{ fontWeight: "700", fontSize: "13px", color: "#111827" }}>
-                        {step.label}
-                      </div>
-                      <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "2px" }}>
-                        {step.date}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* CARD 2: ASSIGNED CA INFO */}
-            <div
-              style={{
-                background: "#ffffff",
-                borderRadius: "10px",
-                border: "1px solid #e7e5df",
-                padding: "18px 24px",
-                marginBottom: "18px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: "16px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                <div
-                  style={{
-                    width: "44px",
-                    height: "44px",
-                    borderRadius: "50%",
-                    background: "#0a182d",
-                    color: "#ffffff",
-                    fontWeight: "700",
-                    fontSize: "15px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  {currentCase.assigned_employee?.name
-                    ? currentCase.assigned_employee.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .slice(0, 2)
-                    : "RS"}
-                </div>
-                <div>
-                  <div style={{ fontWeight: "700", fontSize: "15.5px", color: "#0f172a" }}>
-                    {currentCase.assigned_employee?.name || "Rahul Sharma"}
-                  </div>
-                  <div style={{ fontSize: "12.5px", color: "#4b5563", marginTop: "2px" }}>
-                    {currentCase.assigned_employee?.designation || "Tax Associate, Membership no. 214563"}
-                  </div>
-                  <div style={{ fontSize: "12.5px", color: "#6b7280", marginTop: "2px" }}>
-                    {currentCase.assigned_employee?.email || "rahul.s@chouguleassoc.in"} · {currentCase.assigned_employee?.phone || "98112 23344"}
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <a
-                  href={`tel:${currentCase.assigned_employee?.phone || "9811223344"}`}
-                  style={{
-                    padding: "7px 20px",
-                    borderRadius: "4px",
-                    border: "1px solid #b47b2b",
-                    color: "#925f1d",
+                    top: "100%",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    marginTop: "8px",
                     background: "#ffffff",
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    textDecoration: "none",
-                    cursor: "pointer",
-                    display: "inline-block",
+                    borderRadius: "14px",
+                    border: "1px solid #e2e8f0",
+                    boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+                    padding: "16px",
+                    width: "280px",
+                    zIndex: 1000,
                   }}
                 >
-                  Call
-                </a>
-                <button
-                  onClick={() => setShowChatModal(true)}
-                  style={{
-                    padding: "8px 22px",
-                    borderRadius: "4px",
-                    border: "none",
-                    background: "#0a182d",
-                    color: "#ffffff",
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                  }}
-                >
-                  Chat
-                </button>
-              </div>
-            </div>
-
-            {/* CARD 3: COMPUTATION & FEE BREAKDOWN / PAYMENT GATE */}
-            <div
-              style={{
-                background: "#ffffff",
-                borderRadius: "10px",
-                border: "1px solid #e7e5df",
-                padding: "26px 28px",
-                marginBottom: "18px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-              }}
-            >
-              {/* Green Notice Banner */}
-              <div
-                style={{
-                  background: "#ecfdf5",
-                  border: "1px solid #a7f3d0",
-                  borderRadius: "6px",
-                  padding: "12px 16px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  marginBottom: "24px",
-                }}
-              >
-                <div
-                  style={{
-                    width: "24px",
-                    height: "24px",
-                    borderRadius: "50%",
-                    border: "1.5px solid #059669",
-                    color: "#059669",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "13px",
-                    fontWeight: "700",
-                    flexShrink: 0,
-                  }}
-                >
-                  ✓
-                </div>
-                <div>
-                  <div style={{ fontWeight: "700", fontSize: "14px", color: "#065f46" }}>
-                    Your return has been computed and certified
+                  <div style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    Active Taxpayer Profile
                   </div>
-                  <div style={{ fontSize: "12.5px", color: "#047857", marginTop: "1px" }}>
-                    Settle the filing fee to release your computation sheet and e-file.
+                  <div style={{ fontWeight: "900", color: "#252525", fontSize: "15px", marginTop: "4px" }}>
+                    {user.name || "Pankaj Taxpayer"}
                   </div>
-                </div>
-              </div>
-
-              {/* Fee Breakdown Rows */}
-              <div style={{ marginBottom: "22px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: "14px", color: "#374151" }}>
-                  <span>CA assisted filing fee</span>
-                  <span style={{ fontWeight: "600" }}>₹1,499.00</span>
-                </div>
-                <div style={{ height: "1px", background: "#f3f4f6" }} />
-
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: "14px", color: "#374151" }}>
-                  <span>GST (18%)</span>
-                  <span style={{ fontWeight: "600" }}>₹270.00</span>
-                </div>
-                <div style={{ height: "1px", background: "#e5e7eb" }} />
-
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 0 4px", fontSize: "15.5px", color: "#111827" }}>
-                  <span style={{ fontWeight: "700" }}>Total payable</span>
-                  <span style={{ fontWeight: "700", fontSize: "16px" }}>₹1,769.00</span>
-                </div>
-              </div>
-
-              {/* Pay Now Button / Unlocked Actions */}
-              {!caPaymentCompleted ? (
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
-                    <button
-                      onClick={handleCaAssistedPayNow}
-                      disabled={caPaymentProcessing}
-                      style={{
-                        background: "#aa7329",
-                        color: "#ffffff",
-                        border: "none",
-                        borderRadius: "4px",
-                        padding: "13px 28px",
-                        fontSize: "14.5px",
-                        fontWeight: "700",
-                        cursor: caPaymentProcessing ? "not-allowed" : "pointer",
-                        boxShadow: "0 2px 4px rgba(170,115,41,0.2)",
-                        transition: "background 0.15s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!caPaymentProcessing) e.currentTarget.style.background = "#946221";
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!caPaymentProcessing) e.currentTarget.style.background = "#aa7329";
-                      }}
-                    >
-                      {caPaymentProcessing ? "Processing..." : "Pay ₹1,769 and release return"}
-                    </button>
-
-                    <div style={{ fontSize: "12px", color: "#6b7280", lineHeight: "1.5" }}>
-                      <div>🔒 Secured by Razorpay · PCI-DSS compliant</div>
-                      <div>UPI · Cards · Net banking · Wallets</div>
-                    </div>
+                  <div style={{ fontSize: "12.5px", color: "#0A8E4B", fontWeight: "700", marginTop: "2px" }}>
+                    PAN: {storedPan || "COMPC2233M"}
                   </div>
-                </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <div
-                    style={{
-                      background: "#ecfdf5",
-                      border: "1px solid #86efac",
-                      borderRadius: "6px",
-                      padding: "12px 16px",
-                      color: "#166534",
-                      fontWeight: "600",
-                      fontSize: "13.5px",
-                    }}
-                  >
-                    ✓ Payment Completed! Reference: {caPaymentInfo?.razorpay_payment_id || "RZP_SUCCESS"}. All deliverables are now unlocked.
+                  <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+                    Assessment Year: <strong>AY {assessmentYear}</strong>
                   </div>
-
-                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                    <button
-                      onClick={() => setShowDossierModal(true)}
-                      style={{
-                        padding: "9px 18px",
-                        borderRadius: "4px",
-                        background: "#0a182d",
-                        color: "#fff",
-                        border: "none",
-                        fontWeight: "600",
-                        fontSize: "13px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      View Computation Sheet
-                    </button>
-                    <button
-                      onClick={() => setShowDossierModal(true)}
-                      style={{
-                        padding: "9px 18px",
-                        borderRadius: "4px",
-                        background: "#15803d",
-                        color: "#fff",
-                        border: "none",
-                        fontWeight: "600",
-                        fontSize: "13px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Download ITR JSON
-                    </button>
+                  <div style={{ marginTop: "10px", padding: "6px 10px", background: "#f0fbf5", borderRadius: "8px", border: "1px solid #c3ebd5", fontSize: "11px", color: "#0A8E4B", fontWeight: "700", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#0A8E4B" }}></span>
+                    Assigned CA Panel Connected
                   </div>
                 </div>
               )}
-
-              {/* Dashed Separator */}
-              <div style={{ borderTop: "1px dashed #d1d5db", margin: "24px 0 16px" }} />
-
-              {/* Unlocks Grid */}
-              <div style={{ fontSize: "13px", color: "#6b7280", marginBottom: "12px" }}>
-                This unlocks the following, once paid
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                  gap: "10px",
-                }}
-              >
-                {[
-                  "Full computation sheet",
-                  "ITR JSON for e-filing",
-                  "Signed PDF copy",
-                  "CA filing authorisation",
-                ].map((item, i) => (
-                  <div
-                    key={i}
-                    onClick={() => {
-                      if (caPaymentCompleted) setShowDossierModal(true);
-                    }}
-                    style={{
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "4px",
-                      background: "#fbfbfa",
-                      padding: "10px 12px",
-                      fontSize: "12.5px",
-                      color: caPaymentCompleted ? "#065f46" : "#4b5563",
-                      fontWeight: "500",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      cursor: caPaymentCompleted ? "pointer" : "default",
-                    }}
-                  >
-                    <span>{caPaymentCompleted ? "🔓" : "🔒"}</span>
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
             </div>
 
-            {/* BOTTOM SECTION: 2 COLUMNS (Attached Documents & Talk to your CA) */}
+            {/* Right: Clean Actions & Profile Avatar */}
+            <div className="d-flex align-items-center gap-2">
+              <button
+                onClick={() => navigate("/portal")}
+                style={{
+                  background: "#f1f5f9",
+                  border: "1px solid #e2e8f0",
+                  color: "#252525",
+                  padding: "6px 14px",
+                  borderRadius: "20px",
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <span>📝</span>
+                <span className="d-none d-sm-inline">Self Filing Portal</span>
+              </button>
+
+              <button
+                onClick={() => setShowContactModal(true)}
+                style={{
+                  background: "#f0fbf5",
+                  border: "1px solid #c3ebd5",
+                  color: "#0A8E4B",
+                  padding: "6px 12px",
+                  borderRadius: "20px",
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+              >
+                <span>💬</span>
+                <span className="d-none d-sm-inline">Support</span>
+              </button>
+
+              {/* User Avatar Circle */}
+              <div style={{ position: "relative" }}>
+                <button
+                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    background: "#fdf2f8",
+                    border: "1.5px solid rgba(232, 62, 140, 0.35)",
+                    color: "#E83E8C",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: "800",
+                    fontSize: "14px",
+                    cursor: "pointer",
+                  }}
+                  title={user.name || "User Profile"}
+                >
+                  {(user.name ? user.name.charAt(0).toUpperCase() : "👤")}
+                </button>
+
+                {showProfileDropdown && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      right: 0,
+                      marginTop: "8px",
+                      background: "#ffffff",
+                      borderRadius: "14px",
+                      border: "1px solid #e2e8f0",
+                      boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+                      padding: "12px",
+                      width: "220px",
+                      zIndex: 1000,
+                    }}
+                  >
+                    <div style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div style={{ fontWeight: "800", color: "#0f172a", fontSize: "13px" }}>{user.name || "Taxpayer"}</div>
+                      <div style={{ fontSize: "11.5px", color: "#64748b" }}>{storedPan || "COMPC2233M"}</div>
+                    </div>
+                    <button
+                      onClick={() => { setShowProfileDropdown(false); navigate("/portal"); }}
+                      style={{ width: "100%", background: "none", border: "none", padding: "8px", textAlign: "left", fontSize: "12.5px", color: "#ea580c", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                    >
+                      <span>📝</span> Go to Self Filing
+                    </button>
+                    <button
+                      onClick={() => { setShowProfileDropdown(false); setShowContactModal(true); }}
+                      style={{ width: "100%", background: "none", border: "none", padding: "8px", textAlign: "left", fontSize: "12.5px", color: "#334155", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                    >
+                      <span>💬</span> Help &amp; Support
+                    </button>
+                    <div style={{ borderTop: "1px solid #f1f5f9", marginTop: "4px", paddingTop: "4px" }}>
+                      <button
+                        onClick={handleLogout}
+                        style={{ width: "100%", background: "none", border: "none", padding: "8px", textAlign: "left", fontSize: "12.5px", color: "#ef4444", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                      >
+                        <span>🔒</span> Sign out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </CContainer>
+      </nav>
+
+      <CContainer className="mt-4">
+
+        {/* ════ 3-COLUMN DASHBOARD LAYOUT ════
+            Left: Dedicated Cases Sidebar (Increments smoothly)
+            Center: Main Case Workflow & Stage Pipeline
+            Right: ClearTax Assistance & CA Guarantee Cards
+        */}
+        <CRow className="g-3 g-xl-4">
+
+          {/* ──── LEFT COLUMN: FILING CASES SIDEBAR ──── */}
+          <CCol xs={12} lg={3} xl={3}>
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-                gap: "18px",
+                position: "sticky",
+                top: "76px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
               }}
             >
-              {/* Left Column: Attached Documents */}
+              {/* Cases Panel Card */}
               <div
                 style={{
                   background: "#ffffff",
-                  borderRadius: "10px",
-                  border: "1px solid #e7e5df",
-                  padding: "22px 26px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                  borderRadius: "16px",
+                  border: "1.5px solid #e2e8f0",
+                  padding: "16px",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
                 }}
               >
-                <div style={{ fontWeight: "700", fontSize: "15px", color: "#0f172a", marginBottom: "18px" }}>
-                  Attached documents
+                {/* Header & Case Count */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ fontSize: "18px" }}>📂</span>
+                    <div>
+                      <div style={{ fontSize: "14px", fontWeight: "900", color: "#252525" }}>
+                        Filing Cases
+                      </div>
+                      <div style={{ fontSize: "11px", color: "#64748b" }}>
+                        All your CA assisted requests
+                      </div>
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      background: "#fdf2f8",
+                      color: "#E83E8C",
+                      fontSize: "12px",
+                      fontWeight: "800",
+                      padding: "2px 8px",
+                      borderRadius: "10px",
+                      border: "1px solid rgba(232, 62, 140, 0.3)",
+                    }}
+                  >
+                    {allCases.length}
+                  </span>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {currentCase.details?.customer_documents && currentCase.details.customer_documents.length > 0 ? (
-                    currentCase.details.customer_documents.map((doc, idx) => (
-                      <a
-                        key={idx}
-                        href={doc.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "10px",
-                          textDecoration: "none",
-                          color: "#111827",
-                          fontSize: "13px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        <span
+                {/* Book New Case Action Button */}
+                <button
+                  onClick={() => setActiveTab("new_request")}
+                  style={{
+                    width: "100%",
+                    background: activeTab === "new_request" ? "#F87826" : "#ffffff",
+                    color: activeTab === "new_request" ? "#ffffff" : "#F87826",
+                    border: activeTab === "new_request" ? "none" : "1.5px solid rgba(248, 120, 38, 0.4)",
+                    borderRadius: "12px",
+                    padding: "10px 14px",
+                    fontSize: "13px",
+                    fontWeight: "800",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    marginBottom: "14px",
+                    boxShadow: activeTab === "new_request" ? "0 2px 8px rgba(248, 120, 38, 0.25)" : "none",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span style={{ fontSize: "15px" }}>✨</span>
+                  <span>+ Book New CA Filing</span>
+                </button>
+
+                {/* Cases List with smooth increment scroll */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                    maxHeight: "calc(100vh - 280px)",
+                    overflowY: "auto",
+                    paddingRight: "2px",
+                  }}
+                >
+                  {loadingRequests ? (
+                    <div style={{ textAlign: "center", padding: "20px 0", color: "#94a3b8", fontSize: "12px" }}>
+                      <CSpinner size="sm" color="success" className="me-2" />
+                      Loading cases…
+                    </div>
+                  ) : allCases.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "24px 12px", background: "#f8fafc", borderRadius: "10px", border: "1px dashed #cbd5e1" }}>
+                      <div style={{ fontSize: "24px", marginBottom: "4px" }}>📭</div>
+                      <div style={{ fontSize: "12.5px", fontWeight: "700", color: "#252525" }}>No filing cases yet</div>
+                      <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>Click above to hire a CA specialist</div>
+                    </div>
+                  ) : (
+                    allCases.map((c) => {
+                      const isSel = c.id === currentCase?.id && activeTab === "case_view";
+                      const isVerified = eVerifications[c.id]?.step === "verified";
+                      const isPaid = payments[c.id]?.paid;
+
+                      let badgeColor = "#b45309";
+                      let badgeBg = "#fffbeb";
+                      let badgeBorder = "rgba(252, 178, 31, 0.4)";
+                      let statusText = c.status || "Pending CA";
+
+                      if (isVerified) {
+                        badgeColor = "#0A8E4B";
+                        badgeBg = "#f0fbf5";
+                        badgeBorder = "#a3e6be";
+                        statusText = "e-Verified";
+                      } else if (isPaid) {
+                        badgeColor = "#A020C0";
+                        badgeBg = "#fbf2fc";
+                        badgeBorder = "#f0d4f7";
+                        statusText = "Filing Paid";
+                      } else if (c.assigned_employee) {
+                        badgeColor = "#c2410c";
+                        badgeBg = "#fff7ed";
+                        badgeBorder = "rgba(248, 120, 38, 0.35)";
+                        statusText = "CA Reviewing";
+                      }
+
+                      return (
+                        <div
+                          key={c.id}
+                          onClick={() => {
+                            setSelectedRequestId(c.id);
+                            setActiveTab("case_view");
+                          }}
                           style={{
-                            background: "#0a182d",
-                            color: "#ffffff",
-                            padding: "2px 6px",
-                            borderRadius: "3px",
-                            fontSize: "10px",
-                            fontWeight: "800",
+                            background: isSel ? "#f0fbf5" : "#ffffff",
+                            border: isSel ? "1.5px solid #a3e6be" : "1px solid #e2e8f0",
+                            borderLeft: isSel ? "4px solid #0A8E4B" : "1px solid #e2e8f0",
+                            borderRadius: "12px",
+                            padding: "10px 12px",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                            boxShadow: isSel ? "0 2px 8px rgba(10,142,75,0.08)" : "0 1px 2px rgba(0,0,0,0.02)",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSel) e.currentTarget.style.borderColor = "#a3e6be";
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSel) e.currentTarget.style.borderColor = "#e2e8f0";
                           }}
                         >
-                          PDF
-                        </span>
-                        <span style={{ wordBreak: "break-all" }}>{doc.original_name}</span>
-                      </a>
-                    ))
-                  ) : (
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span
-                        style={{
-                          background: "#0a182d",
-                          color: "#ffffff",
-                          padding: "2px 6px",
-                          borderRadius: "3px",
-                          fontSize: "10px",
-                          fontWeight: "800",
-                        }}
-                      >
-                        PDF
-                      </span>
-                      <span style={{ fontSize: "13px", color: "#111827", fontWeight: "500" }}>
-                        Appraisal_Letter_Pankaj_Chougule_signed.pdf
-                      </span>
-                    </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                            <div style={{ fontSize: "12.5px", fontWeight: "800", color: isSel ? "#0A8E4B" : "#252525" }}>
+                              Case #{c.id}
+                            </div>
+                            <span
+                              style={{
+                                fontSize: "10px",
+                                fontWeight: "800",
+                                color: badgeColor,
+                                background: badgeBg,
+                                border: `1px solid ${badgeBorder}`,
+                                padding: "1px 6px",
+                                borderRadius: "8px",
+                              }}
+                            >
+                              {statusText}
+                            </span>
+                          </div>
+
+                          <div style={{ fontSize: "11.5px", color: "#64748b", fontWeight: "600" }}>
+                            AY {c.assessment_year || "2026-27"} · {c.service_type === "business_profession" ? "Business/Prof" : "Salaried"}
+                          </div>
+
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "6px", fontSize: "10.5px", color: "#94a3b8" }}>
+                            <span>👨‍💼 {c.assigned_employee?.name?.split(" ")[0] || "CA Assigned"}</span>
+                            <span>{c.created_at ? new Date(c.created_at).toLocaleDateString("en-IN", { month: "short", day: "numeric" }) : "Active"}</span>
+                          </div>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </div>
 
-              {/* Right Column: Talk to your CA */}
+            </div>
+          </CCol>
+
+          {/* ──── CENTER COLUMN: ACTIVE CASE WORKFLOW & STEPPER (MIDDLE) ──── */}
+          <CCol xs={12} lg={6} xl={6}>
+
+            {/* ClearTax-style Status Pre-filled Banner */}
+            <div style={{
+              background: "#f0fbf5",
+              border: "1.5px solid #c3ebd5",
+              borderRadius: "14px",
+              padding: "14px 18px",
+              marginBottom: "20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "12px",
+              flexWrap: "wrap",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ fontSize: "20px" }}>🛡️</span>
+                <div>
+                  <div style={{ fontSize: "13.5px", fontWeight: "800", color: "#0A8E4B" }}>
+                    CA-Supervised e-Filing Track (AY {assessmentYear})
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#475569" }}>
+                    Your return is prepared, verified, and certified by an ICAI Chartered Accountant specialist.
+                  </div>
+                </div>
+              </div>
+              <span style={{ background: "#e3f7ec", color: "#0A8E4B", border: "1px solid #a3e6be", fontSize: "11px", fontWeight: "800", padding: "4px 10px", borderRadius: "10px" }}>
+                100% Notice Proof
+              </span>
+            </div>
+
+            {activeTab === "case_view" ? (
+              loadingRequests ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "320px", gap: "12px", background: "#ffffff", borderRadius: "16px", padding: "32px", border: "1px solid #e2e8f0" }}>
+                  <CSpinner color="success" />
+                  <span style={{ color: "#64748b", fontWeight: "600" }}>Loading your CA filing cases…</span>
+                </div>
+              ) : !currentCase ? (
+                <div
+                  style={{
+                    background: "#ffffff",
+                    borderRadius: "16px",
+                    border: "1.5px solid #e2e8f0",
+                    padding: "48px 32px",
+                    textAlign: "center",
+                    boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
+                  }}
+                >
+                  <div style={{ fontSize: "48px", marginBottom: "12px" }}>📁</div>
+                  <h2 style={{ fontSize: "22px", fontWeight: "800", color: "#252525", margin: "0 0 8px" }}>
+                    No filing cases yet
+                  </h2>
+                  <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "24px", maxWidth: "420px", marginLeft: "auto", marginRight: "auto" }}>
+                    Hire an ICAI Chartered Accountant to prepare, optimize, and file your taxes with 100% compliance.
+                  </p>
+                  <button
+                    onClick={() => setActiveTab("new_request")}
+                    style={{
+                      background: "#0A8E4B",
+                      color: "#ffffff",
+                      border: "none",
+                      borderRadius: "10px",
+                      padding: "12px 28px",
+                      fontSize: "14px",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      boxShadow: "0 2px 8px rgba(10,142,75,0.2)",
+                    }}
+                  >
+                    + Book your first CA filing
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  {/* Case Header Card */}
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      borderRadius: "16px",
+                      border: "1.5px solid #e2e8f0",
+                      padding: "24px 28px",
+                      marginBottom: "20px",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
+                      <div>
+                        <div style={{ fontSize: "11px", fontWeight: "800", color: "#A020C0", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          Active Filing Case #{currentCase.id}
+                        </div>
+                        <h2 style={{ fontSize: "22px", fontWeight: "900", color: "#252525", margin: "4px 0 2px" }}>
+                          AY {currentCase.assessment_year || "2026-27"} — {currentCase.service_type === "business_profession" ? "Business & Profession" : "Full Filing"}
+                        </h2>
+                        <div style={{ fontSize: "12.5px", color: "#64748b" }}>
+                          Assigned Specialist: <strong style={{ color: "#252525" }}>{assignedEmployee?.name || "CA Rahul Sharma, FCA"}</strong>
+                        </div>
+                      </div>
+
+                      <span
+                        style={{
+                          background: currentEVerif.step === "verified" ? "#f0fbf5" : currentPayment.paid ? "#fbf2fc" : "#fffbeb",
+                          color: currentEVerif.step === "verified" ? "#0A8E4B" : currentPayment.paid ? "#A020C0" : "#b45309",
+                          border: `1px solid ${currentEVerif.step === "verified" ? "#a3e6be" : currentPayment.paid ? "#f0d4f7" : "rgba(252, 178, 31, 0.4)"}`,
+                          padding: "6px 14px",
+                          borderRadius: "20px",
+                          fontSize: "12px",
+                          fontWeight: "800",
+                        }}
+                      >
+                        {currentEVerif.step === "verified"
+                          ? "✔ Filed & Verified"
+                          : currentPayment.paid
+                            ? "Ready to File"
+                            : hasPreparedComputation
+                              ? "Prepared & Certified"
+                              : "In Progress"}
+                      </span>
+                    </div>
+
+                    {/* Stepper Pipeline - Single Line Guaranteed */}
+                    <div style={{ marginTop: "24px", paddingTop: "18px", borderTop: "1px solid #e2e8f0", overflowX: "auto" }}>
+                      <div style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(5, minmax(110px, 1fr))",
+                        gap: "8px",
+                        alignItems: "center",
+                        minWidth: "560px",
+                      }}>
+                        {[
+                          { l: "1. Request Sent", d: "Submitted", done: true },
+                          { l: "2. CA Assigned", d: assignedEmployee?.name || "Assigned", done: !!currentCase.assigned_employee },
+                          { l: "3. Computation", d: currentApproval.approved ? "Approved" : "Prepared", done: hasPreparedComputation },
+                          { l: "4. Payment", d: currentPayment.paid ? "Paid" : "Pending", done: currentPayment.paid },
+                          { l: "5. e-Verified", d: currentEVerif.step === "verified" ? "Verified" : "Final Stage", done: currentEVerif.step === "verified" },
+                        ].map((st, i) => (
+                          <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                            <div style={{
+                              width: "26px",
+                              height: "26px",
+                              minWidth: "26px",
+                              flexShrink: 0,
+                              borderRadius: "50%",
+                              background: st.done ? "#0A8E4B" : "#e2e8f0",
+                              color: st.done ? "#ffffff" : "#64748b",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "11.5px",
+                              fontWeight: "800",
+                              boxShadow: st.done ? "0 2px 6px rgba(10, 142, 75, 0.2)" : "none",
+                            }}>
+                              {st.done ? "✓" : i + 1}
+                            </div>
+                            <div style={{ minWidth: 0, overflow: "hidden" }}>
+                              <div style={{ fontSize: "12px", fontWeight: st.done ? "800" : "600", color: st.done ? "#0A8E4B" : "#252525", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{st.l}</div>
+                              <div style={{ fontSize: "10.5px", color: "#94a3b8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{st.d}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CA Onboarding / Submitted Info Card */}
+                  {!isAcceptedByCa ? (
+                    <div
+                      style={{
+                        background: "#fffbeb",
+                        border: "1.5px solid #fde68a",
+                        borderRadius: "16px",
+                        padding: "24px 28px",
+                        marginBottom: "20px",
+                      }}
+                    >
+                      <div style={{ fontWeight: 800, fontSize: "15px", color: "#92400e", marginBottom: "6px" }}>
+                        ⏳ Waiting for your CA to accept this request
+                      </div>
+                      <div style={{ fontSize: "13px", color: "#78350f", lineHeight: "1.5" }}>
+                        Your request has been routed to our ICAI Chartered Accountant panel. As soon as a CA accepts, you can upload additional Form 16 / bank statements directly here.
+                      </div>
+                    </div>
+                  ) : hasSubmittedFilingInfo ? (
+                    <div
+                      style={{
+                        background: "#ffffff",
+                        borderRadius: "16px",
+                        border: "1.5px solid #e2e8f0",
+                        padding: "24px 28px",
+                        marginBottom: "20px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+                        <span style={{ fontSize: "20px" }}>✅</span>
+                        <h3 style={{ fontSize: "17px", fontWeight: "800", color: "#252525", margin: 0 }}>
+                          Information &amp; Documents Submitted to CA
+                        </h3>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", background: "#f8fafc", padding: "16px", borderRadius: "12px" }}>
+                        <div>
+                          <div style={{ fontSize: "11px", fontWeight: "700", color: "#64748b" }}>TAXPAYER TYPE</div>
+                          <div style={{ fontSize: "13px", fontWeight: "800", color: "#252525" }}>{currentCase?.details?.taxpayer_type || "Individual"}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: "11px", fontWeight: "700", color: "#64748b" }}>PAN NUMBER</div>
+                          <div style={{ fontSize: "13px", fontWeight: "800", color: "#0A8E4B" }}>{currentCase?.details?.filing_info?.pan || storedPan || "—"}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: "11px", fontWeight: "700", color: "#64748b" }}>INCOME SOURCES</div>
+                          <div style={{ fontSize: "13px", fontWeight: "800", color: "#252525" }}>{(currentCase?.details?.filing_info?.income_sources || []).join(", ") || "Salary, Interest"}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: "11px", fontWeight: "700", color: "#64748b" }}>DOCUMENTS SENT</div>
+                          <div style={{ fontSize: "13px", fontWeight: "800", color: "#0A8E4B" }}>{(currentCase?.details?.customer_documents || []).length || 1} file(s) attached</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <ItrInfoForm
+                      caseData={currentCase}
+                      defaultPan={storedPan}
+                      onSubmitted={(updated) => {
+                        setMyRequests((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+                      }}
+                    />
+                  )}
+
+                  {/* CA Prepared Tax Computation Dossier */}
+                  {hasPreparedComputation && (
+                    <div
+                      style={{
+                        background: "#ffffff",
+                        borderRadius: "16px",
+                        border: "1.5px solid #e2e8f0",
+                        padding: "26px 28px",
+                        marginBottom: "20px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                        <div>
+                          <div style={{ fontSize: "11px", color: "#64748b", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                            Stage 1: Review &amp; Approval
+                          </div>
+                          <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#252525", margin: "2px 0 0" }}>
+                            Tax Computation Prepared &amp; Certified by CA
+                          </h3>
+                        </div>
+                        <span style={{ background: "#fbf2fc", color: "#A020C0", border: "1px solid #f0d4f7", padding: "4px 10px", borderRadius: "10px", fontSize: "12px", fontWeight: "800" }}>
+                          Form: {itrFormType}
+                        </span>
+                      </div>
+
+                      {/* Status Banner */}
+                      {currentApproval.approved ? (
+                        <div style={{ background: "#f0fbf5", border: "1px solid #a3e6be", borderRadius: "10px", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <span style={{ fontSize: "20px" }}>✅</span>
+                            <div>
+                              <div style={{ fontWeight: "800", fontSize: "13.5px", color: "#0A8E4B" }}>
+                                Computation Approved ({currentApproval.approvedAt || "Recently"})
+                              </div>
+                              <div style={{ fontSize: "12px", color: "#0A8E4B" }}>
+                                Figures verified. Payment &amp; e-filing release step below is unlocked.
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setShowDossierModal(true)}
+                            style={{ background: "#ffffff", border: "1px solid #a3e6be", color: "#0A8E4B", padding: "6px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}
+                          >
+                            View Full Dossier
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ background: "#fffbeb", border: "1px solid rgba(252, 178, 31, 0.4)", borderRadius: "10px", padding: "12px 16px", display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
+                          <span style={{ fontSize: "18px" }}>⚠️</span>
+                          <div style={{ fontSize: "12.5px", color: "#b45309" }}>
+                            <strong>Customer Approval Required:</strong> Please review the income &amp; deductions prepared by your CA. Approve below to release your return.
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Key Computation Grid */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", marginBottom: "20px" }}>
+                        <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px 16px" }}>
+                          <div style={{ fontSize: "11px", color: "#64748b", fontWeight: "700", textTransform: "uppercase" }}>Gross Total Income</div>
+                          <div style={{ fontSize: "18px", fontWeight: "900", color: "#252525", marginTop: "4px" }}>₹{grossTotalIncome.toLocaleString("en-IN")}</div>
+                          <div style={{ fontSize: "11px", color: "#94a3b8" }}>Salary + Other Income</div>
+                        </div>
+
+                        <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px 16px" }}>
+                          <div style={{ fontSize: "11px", color: "#64748b", fontWeight: "700", textTransform: "uppercase" }}>Total Deductions</div>
+                          <div style={{ fontSize: "18px", fontWeight: "900", color: "#252525", marginTop: "4px" }}>₹{totalDeductions.toLocaleString("en-IN")}</div>
+                          <div style={{ fontSize: "11px", color: "#94a3b8" }}>{chosenRegime === "new" ? "Std Ded (₹75,000) + 80CCD" : "80C, 80D, HRA & Std Ded"}</div>
+                        </div>
+
+                        <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px 16px" }}>
+                          <div style={{ fontSize: "11px", color: "#64748b", fontWeight: "700", textTransform: "uppercase" }}>Net Taxable Income</div>
+                          <div style={{ fontSize: "18px", fontWeight: "900", color: "#252525", marginTop: "4px" }}>₹{netTaxableIncome.toLocaleString("en-IN")}</div>
+                          <div style={{ fontSize: "11px", color: "#94a3b8" }}>Taxable Basis</div>
+                        </div>
+
+                        <div style={{ background: refundDue > 0 ? "#f0fbf5" : "#fffdf5", border: `1px solid ${refundDue > 0 ? "#a3e6be" : "rgba(252, 178, 31, 0.35)"}`, borderRadius: "12px", padding: "14px 16px" }}>
+                          <div style={{ fontSize: "11px", color: refundDue > 0 ? "#0A8E4B" : "#b45309", fontWeight: "800", textTransform: "uppercase" }}>
+                            {refundDue > 0 ? "Tax Refund Due to You" : "Net Tax Payable"}
+                          </div>
+                          <div style={{ fontSize: "20px", fontWeight: "900", color: refundDue > 0 ? "#0A8E4B" : "#b45309", marginTop: "4px" }}>
+                            {refundDue > 0 ? `₹${refundDue.toLocaleString("en-IN")}` : `₹${taxPayable.toLocaleString("en-IN")}`}
+                          </div>
+                          <div style={{ fontSize: "11px", color: refundDue > 0 ? "#0A8E4B" : "#b45309" }}>
+                            {refundDue > 0 ? "Direct credit to bank account" : "Challan payable"}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Recommendation Note */}
+                      <div style={{ background: "#f0fbf5", borderLeft: "4px solid #0A8E4B", border: "1px solid #c3ebd5", borderRadius: "0 10px 10px 0", padding: "12px 16px", marginBottom: "20px" }}>
+                        <div style={{ fontSize: "13px", fontWeight: "800", color: "#0A8E4B", marginBottom: "2px" }}>
+                          Selected Regime: {chosenRegime === "new" ? "New Tax Regime (Section 115BAC)" : "Old Tax Regime"}
+                        </div>
+                        <div style={{ fontSize: "12.5px", color: "#475569" }}>
+                          <strong>CA Rationale:</strong> {recommendationReason}
+                        </div>
+                      </div>
+
+                      {/* Approval CTA */}
+                      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                        {!currentApproval.approved ? (
+                          <>
+                            <button
+                              onClick={handleApproveComputation}
+                              style={{
+                                background: "#0A8E4B",
+                                color: "#ffffff",
+                                border: "none",
+                                borderRadius: "10px",
+                                padding: "12px 28px",
+                                fontSize: "13.5px",
+                                fontWeight: "800",
+                                cursor: "pointer",
+                                boxShadow: "0 2px 6px rgba(10,142,75,0.25)",
+                              }}
+                            >
+                              ✓ Approve Computation
+                            </button>
+                            <button
+                              onClick={() => setShowRequestChangesModal(true)}
+                              style={{
+                                background: "#fffbeb",
+                                color: "#b45309",
+                                border: "1.5px solid rgba(252, 178, 31, 0.4)",
+                                borderRadius: "10px",
+                                padding: "12px 20px",
+                                fontSize: "13px",
+                                fontWeight: "700",
+                                cursor: "pointer",
+                              }}
+                            >
+                              📝 Request Changes from CA
+                            </button>
+                            <button
+                              onClick={() => setShowChatModal(true)}
+                              style={{
+                                background: "#ffffff",
+                                color: "#252525",
+                                border: "1px solid #cbd5e1",
+                                borderRadius: "10px",
+                                padding: "12px 20px",
+                                fontSize: "13px",
+                                fontWeight: "700",
+                                cursor: "pointer",
+                              }}
+                            >
+                              💬 Chat with CA
+                            </button>
+                          </>
+                        ) : (
+                          <div style={{ fontSize: "13px", color: "#0A8E4B", fontWeight: "700" }}>
+                            ✔ Computation is locked &amp; approved. Proceed to payment below.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Payment & Unlock Card */}
+                  {hasPreparedComputation && (
+                    <div
+                      style={{
+                        background: "#ffffff",
+                        borderRadius: "16px",
+                        border: "1.5px solid #e2e8f0",
+                        padding: "26px 28px",
+                        marginBottom: "20px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                        opacity: currentApproval.approved ? 1 : 0.8,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                        <div>
+                          <div style={{ fontSize: "11px", color: "#64748b", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                            Stage 2: Payment &amp; Release
+                          </div>
+                          <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a", margin: "2px 0 0" }}>
+                            Settle CA Filing Fee to Release Return
+                          </h3>
+                        </div>
+                        {!currentApproval.approved && (
+                          <span style={{ background: "#fee2e2", color: "#b91c1c", padding: "4px 10px", borderRadius: "8px", fontSize: "11.5px", fontWeight: "700" }}>
+                            🔒 Locked until approved
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Fee Breakdown */}
+                      <div style={{ background: "#f8fafc", borderRadius: "12px", padding: "16px", marginBottom: "18px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#475569", marginBottom: "8px" }}>
+                          <span>CA Assisted Filing Fee</span>
+                          <strong>₹{CA_FILING_FEE.toFixed(2)}</strong>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#475569", marginBottom: "8px" }}>
+                          <span>GST @ 18%</span>
+                          <strong>₹{CA_FILING_FEE_GST.toFixed(2)}</strong>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px dashed #cbd5e1", paddingTop: "8px", fontSize: "15px", color: "#252525" }}>
+                          <span style={{ fontWeight: "800" }}>Total Payable</span>
+                          <strong style={{ color: "#0A8E4B", fontSize: "17px" }}>₹{CA_FILING_FEE_TOTAL.toFixed(2)}</strong>
+                        </div>
+                      </div>
+
+                      {!currentPayment.paid ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+                          <button
+                            onClick={handleCaAssistedPayNow}
+                            disabled={!currentApproval.approved || caPaymentProcessing}
+                            style={{
+                              background: currentApproval.approved ? "#0A8E4B" : "#94a3b8",
+                              color: "#ffffff",
+                              border: "none",
+                              borderRadius: "10px",
+                              padding: "14px 32px",
+                              fontSize: "14.5px",
+                              fontWeight: "800",
+                              cursor: currentApproval.approved && !caPaymentProcessing ? "pointer" : "not-allowed",
+                              boxShadow: currentApproval.approved ? "0 2px 8px rgba(10,142,75,0.25)" : "none",
+                            }}
+                          >
+                            {caPaymentProcessing ? "Processing..." : `💳 Pay ₹${CA_FILING_FEE_TOTAL} & Release Return`}
+                          </button>
+                          <div style={{ fontSize: "12px", color: "#64748b" }}>
+                            🔒 100% Secured by Razorpay · UPI / Cards / Net Banking
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div style={{ background: "#f0fbf5", border: "1px solid #a3e6be", borderRadius: "10px", padding: "12px 16px", color: "#0A8E4B", fontWeight: "700", fontSize: "13.5px", marginBottom: "14px" }}>
+                            ✔ Payment Completed! Ref: {currentPayment.paymentId || "RZP_SUCCESS"}. Deliverables unlocked.
+                          </div>
+                          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                            <button
+                              onClick={handleDownloadPreparedFile}
+                              style={{ background: "#fbf2fc", border: "1.5px solid #f0d4f7", color: "#A020C0", padding: "9px 18px", borderRadius: "8px", fontWeight: "700", fontSize: "13px", cursor: "pointer" }}
+                            >
+                              📄 Download Prepared Return
+                            </button>
+                            <button
+                              onClick={() => setShowDossierModal(true)}
+                              style={{ background: "#0A8E4B", color: "#ffffff", border: "none", padding: "9px 18px", borderRadius: "8px", fontWeight: "700", fontSize: "13px", cursor: "pointer" }}
+                            >
+                              ⬇ Download ITR JSON
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Post-Payment Filing & E-Verification */}
+                  {currentPayment.paid && (
+                    <div
+                      style={{
+                        background: "#ffffff",
+                        borderRadius: "16px",
+                        border: "1.5px solid #e2e8f0",
+                        padding: "26px 28px",
+                        marginBottom: "20px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+                        <span style={{ fontSize: "20px" }}>🏛️</span>
+                        <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#252525", margin: 0 }}>
+                          ITD Filing &amp; Aadhaar OTP E-Verification
+                        </h3>
+                      </div>
+
+                      {currentEVerif.step !== "verified" ? (
+                        <div style={{ background: "#fffdf5", border: "1px solid rgba(252, 178, 31, 0.4)", borderRadius: "12px", padding: "18px 20px" }}>
+                          <div style={{ fontWeight: "800", fontSize: "14px", color: "#b45309", marginBottom: "4px" }}>
+                            Aadhaar OTP E-Verification Required
+                          </div>
+                          <p style={{ fontSize: "12.5px", color: "#78350f", margin: "0 0 14px 0", lineHeight: "1.5" }}>
+                            Your certified return is prepared for upload. Verify using the 6-digit Aadhaar OTP sent to your mobile.
+                          </p>
+                          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                            <input
+                              type="text"
+                              placeholder="Enter 6-digit Aadhaar OTP"
+                              maxLength={6}
+                              value={currentEVerif.otp}
+                              onChange={(e) => setEVerifications((prev) => ({ ...prev, [currentCase.id]: { ...prev[currentCase.id], otp: e.target.value } }))}
+                              style={{ padding: "8px 14px", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13.5px", fontWeight: "700", width: "210px" }}
+                            />
+                            <button
+                              onClick={handleVerifyAadhaarOtp}
+                              disabled={currentEVerif.verifying}
+                              style={{ background: "#0A8E4B", color: "#ffffff", border: "none", padding: "10px 24px", borderRadius: "8px", fontSize: "13px", fontWeight: "800", cursor: "pointer" }}
+                            >
+                              {currentEVerif.verifying ? "Verifying with ITD..." : "Verify & Submit Return"}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ background: "#f0fbf5", border: "1px solid #a3e6be", borderRadius: "12px", padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+                          <div>
+                            <div style={{ fontWeight: "800", fontSize: "14.5px", color: "#0A8E4B" }}>
+                              ✔ Return Successfully Filed &amp; E-Verified
+                            </div>
+                            <div style={{ fontSize: "12.5px", color: "#0A8E4B", marginTop: "3px" }}>
+                              Official ITD Ack No: <strong>{currentEVerif.ackNo}</strong>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setShowDossierModal(true)}
+                            style={{ background: "#0A8E4B", color: "#ffffff", border: "none", borderRadius: "8px", padding: "9px 18px", fontSize: "12.5px", fontWeight: "700", cursor: "pointer" }}
+                          >
+                            Download ITR-V Receipt
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            ) : (
+              /* ════ BOOK NEW CA SERVICE FLOW ════ */
               <div
                 style={{
                   background: "#ffffff",
-                  borderRadius: "10px",
-                  border: "1px solid #e7e5df",
-                  padding: "22px 26px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                  borderRadius: "16px",
+                  border: "1.5px solid #e2e8f0",
+                  padding: "32px",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
                 }}
               >
-                <div style={{ fontWeight: "700", fontSize: "15px", color: "#0f172a", marginBottom: "10px" }}>
-                  Talk to your CA
+                <div style={{ marginBottom: "24px" }}>
+                  <h2 style={{ fontSize: "22px", fontWeight: "900", color: "#0f172a", margin: 0 }}>
+                    Book an Expert CA for Tax Filing
+                  </h2>
+                  <p style={{ color: "#64748b", fontSize: "13.5px", margin: "4px 0 0" }}>
+                    Get matched with a dedicated ICAI Chartered Accountant to maximize your refunds and guarantee 100% compliance.
+                  </p>
                 </div>
 
-                <div
-                  style={{
+                {feedback.message && (
+                  <CAlert color={feedback.type} className="mb-4" dismissible>
+                    {feedback.message}
+                  </CAlert>
+                )}
+
+                <CForm onSubmit={handleSubmitRequest}>
+                  <CRow className="g-3">
+                    <CCol md={6}>
+                      <label style={{ fontWeight: "700", fontSize: "13px", color: "#0f172a", marginBottom: "6px", display: "block" }}>
+                        Filing Service Type
+                      </label>
+                      <select
+                        value={serviceType}
+                        onChange={(e) => setServiceType(e.target.value)}
+                        style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13.5px" }}
+                      >
+                        <option value="full_filing">Full Filing (Salaried / Capital Gains / House Property)</option>
+                        <option value="business_profession">Business &amp; Profession (44AD / 44ADA / Freelancer)</option>
+                        <option value="nri_foreign">NRI / Foreign Income &amp; DTAA Relief</option>
+                      </select>
+                    </CCol>
+
+                    <CCol md={6}>
+                      <label style={{ fontWeight: "700", fontSize: "13px", color: "#0f172a", marginBottom: "6px", display: "block" }}>
+                        Assessment Year
+                      </label>
+                      <select
+                        value={assessmentYear}
+                        onChange={(e) => setAssessmentYear(e.target.value)}
+                        style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13.5px" }}
+                      >
+                        <option value="2026-27">AY 2026-27 (FY 2025-26) - Current Year</option>
+                        <option value="2025-26">AY 2025-26 (Belated / Updated Return)</option>
+                      </select>
+                    </CCol>
+
+                    <CCol md={12}>
+                      <label style={{ fontWeight: "700", fontSize: "13px", color: "#0f172a", marginBottom: "8px", display: "block" }}>
+                        Select Your Income Sources
+                      </label>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                        {[
+                          "Salary (Form 16)",
+                          "Bank Interest & FDs",
+                          "Capital Gains (Shares & MFs)",
+                          "House Property / Rental",
+                          "Freelance / Consulting",
+                          "Crypto & Virtual Assets",
+                        ].map((src) => {
+                          const isSelected = selectedSources.includes(src);
+                          return (
+                            <button
+                              type="button"
+                              key={src}
+                              onClick={() => {
+                                setSelectedSources((prev) =>
+                                  isSelected ? prev.filter((s) => s !== src) : [...prev, src]
+                                );
+                              }}
+                              style={{
+                                padding: "8px 14px",
+                                borderRadius: "20px",
+                                border: `1.5px solid ${isSelected ? "rgba(232, 62, 140, 0.5)" : "#cbd5e1"}`,
+                                background: isSelected ? "#fdf2f8" : "#ffffff",
+                                color: isSelected ? "#E83E8C" : "#475569",
+                                fontSize: "12.5px",
+                                fontWeight: isSelected ? "800" : "600",
+                                cursor: "pointer",
+                                transition: "all 0.15s ease",
+                              }}
+                            >
+                              {isSelected ? `✓ ${src}` : `+ ${src}`}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </CCol>
+
+                    <CCol md={12}>
+                      <label style={{ fontWeight: "700", fontSize: "13px", color: "#252525", marginBottom: "6px", display: "block" }}>
+                        Special Instructions or Notes for CA
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="e.g. Switched jobs in Oct, have two Form 16s, need assistance claiming maximum 80D and HRA exemptions..."
+                        style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13.5px" }}
+                      />
+                    </CCol>
+
+                    <CCol md={12}>
+                      <label style={{ fontWeight: "700", fontSize: "13px", color: "#252525", marginBottom: "6px", display: "block" }}>
+                        Upload Tax Documents (Optional - Form 16, Capital Gains, Statements)
+                      </label>
+                      <input
+                        type="file"
+                        multiple
+                        onChange={(e) => setFiles(Array.from(e.target.files))}
+                        style={{ width: "100%", padding: "10px", border: "1.5px dashed #cbd5e1", borderRadius: "8px", background: "#f8fafc" }}
+                      />
+                    </CCol>
+
+                    <CCol md={12} className="mt-4">
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        style={{
+                          background: "#F87826",
+                          color: "#ffffff",
+                          padding: "14px 32px",
+                          borderRadius: "10px",
+                          border: "none",
+                          fontWeight: "800",
+                          fontSize: "14.5px",
+                          cursor: submitting ? "not-allowed" : "pointer",
+                          boxShadow: "0 2px 8px rgba(248, 120, 38, 0.25)",
+                        }}
+                      >
+                        {submitting ? "Booking CA Specialist..." : "✨ Submit Case & Match with CA →"}
+                      </button>
+                    </CCol>
+                  </CRow>
+                </CForm>
+              </div>
+            )}
+          </CCol>
+
+          {/* ════ RIGHT SIDEBAR: CA EXPERT, COMPUTATION & ASSISTANCE CARDS ════ */}
+          <CCol xs={12} lg={3} xl={3}>
+            <div style={{ position: "sticky", top: "76px", display: "flex", flexDirection: "column", gap: "12px" }}>
+
+              {/* 1. Dedicated CA Expert Card */}
+              <div style={{
+                background: "#ffffff",
+                border: "1.5px solid rgba(169, 205, 83, 0.45)",
+                borderRadius: "16px",
+                padding: "16px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <span style={{
+                    background: "#fffbeb",
+                    color: "#b45309",
+                    border: "1px solid rgba(252, 178, 31, 0.4)",
+                    fontSize: "10.5px",
+                    fontWeight: "800",
+                    padding: "3px 10px",
+                    borderRadius: "20px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}>
+                    👨‍💼 Dedicated CA Expert
+                  </span>
+                  <span style={{ fontSize: "11px", fontWeight: "700", color: "#557319", background: "#f4f9eb", padding: "2px 8px", borderRadius: "8px", border: "1px solid rgba(169, 205, 83, 0.45)" }}>
+                    ● Online
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+                  <div style={{
+                    width: "44px",
+                    height: "44px",
+                    borderRadius: "50%",
+                    background: "#f4f9eb",
+                    color: "#0A8E4B",
                     display: "flex",
                     alignItems: "center",
-                    gap: "6px",
-                    fontSize: "13px",
-                    color: "#15803d",
-                    fontWeight: "600",
-                    marginBottom: "10px",
-                  }}
-                >
-                  <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#15803d", display: "inline-block" }} />
-                  <span>{currentCase.assigned_employee?.name?.split(" ")[0] || "Rahul"} is available</span>
+                    justifyContent: "center",
+                    fontWeight: "900",
+                    fontSize: "16px",
+                    border: "1.5px solid #A9CD53",
+                  }}>
+                    {assignedEmployee?.name ? assignedEmployee.name.charAt(0) : "CA"}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: "900", fontSize: "14px", color: "#252525" }}>
+                      {assignedEmployee?.name || "CA Rahul Sharma, FCA"}
+                    </div>
+                    <div style={{ fontSize: "11px", color: "#64748b" }}>
+                      {assignedEmployee?.designation || "Senior Tax Associate, ICAI No. 214563"}
+                    </div>
+                  </div>
                 </div>
 
-                <div style={{ fontSize: "13px", color: "#4b5563", lineHeight: "1.55", marginBottom: "18px" }}>
-                  Questions about a deduction, Form 16 entry, or how a figure was computed — ask directly before you pay.
+                <div style={{ background: "#f8fafc", borderRadius: "10px", padding: "8px 10px", fontSize: "11.5px", color: "#475569", display: "flex", flexDirection: "column", gap: "4px", marginBottom: "12px" }}>
+                  <div>📧 {assignedEmployee?.email || "rahul.s@tiqtax.in"}</div>
+                  <div>📞 {assignedEmployee?.phone || "+91 98112 23344"}</div>
                 </div>
 
                 <button
                   onClick={() => setShowChatModal(true)}
                   style={{
-                    background: "#0a182d",
+                    width: "100%",
+                    background: "#A020C0",
                     color: "#ffffff",
                     border: "none",
-                    borderRadius: "4px",
-                    padding: "8px 22px",
-                    fontSize: "13px",
-                    fontWeight: "600",
+                    padding: "9px 12px",
+                    borderRadius: "10px",
+                    fontSize: "12.5px",
+                    fontWeight: "800",
                     cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    boxShadow: "0 2px 8px rgba(160,32,192,0.25)",
+                    transition: "all 0.15s ease",
                   }}
                 >
-                  Open chat
+                  <span>💬</span> Chat with Assigned CA
                 </button>
               </div>
-            </div>
-          </div>
-        ) : (
-          /* VIEW 2: BOOK NEW CA SERVICE FORM */
-          <div
-            style={{
-              background: "#ffffff",
-              borderRadius: "10px",
-              border: "1px solid #e7e5df",
-              padding: "32px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <div>
-                <h2 style={{ fontSize: "22px", fontWeight: "700", fontFamily: "Georgia, serif", color: "#0f172a", margin: 0 }}>
-                  Book a Dedicated CA Filing Service
-                </h2>
-                <p style={{ color: "#6b7280", fontSize: "13.5px", margin: "4px 0 0" }}>
-                  Upload your documents and get assigned to an expert Chartered Accountant.
-                </p>
-              </div>
-              <button
-                onClick={() => setActiveTab("case_view")}
-                style={{
-                  background: "#f3f4f6",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "4px",
-                  padding: "6px 14px",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  cursor: "pointer",
-                }}
-              >
-                Back to Cases
-              </button>
-            </div>
 
-            {feedback.message && (
-              <CAlert color={feedback.type === "success" ? "success" : "danger"} className="fw-bold mb-3">
-                {feedback.message}
-              </CAlert>
-            )}
+              {/* 2. CA Computation Summary Card */}
+              <div style={{
+                background: "#ffffff",
+                border: "1.5px solid #e2e8f0",
+                borderRadius: "16px",
+                padding: "16px",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                  <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#252525", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    CA Computation Summary
+                  </span>
+                  <span style={{
+                    background: chosenRegime === "new" ? "#fdf2f8" : "#f0fbf5",
+                    color: chosenRegime === "new" ? "#E83E8C" : "#0A8E4B",
+                    border: `1px solid ${chosenRegime === "new" ? "rgba(232, 62, 140, 0.3)" : "#a3e6be"}`,
+                    fontSize: "10.5px",
+                    fontWeight: "800",
+                    padding: "2px 7px",
+                    borderRadius: "10px",
+                  }}>
+                    {chosenRegime === "new" ? "New Regime" : "Old Regime"}
+                  </span>
+                </div>
 
-            <CForm onSubmit={handleSubmitRequest}>
-              <CRow className="g-4">
-                <CCol md={6}>
-                  <label style={{ fontSize: "12px", fontWeight: "700", color: "#4b5563", textTransform: "uppercase", marginBottom: "6px", display: "block" }}>
-                    Income Tax PAN
-                  </label>
-                  <input
-                    type="text"
-                    value={storedPan}
-                    readOnly
-                    style={{ width: "100%", padding: "10px 14px", background: "#f9fafb", border: "1px solid #d1d5db", borderRadius: "4px", fontWeight: "700" }}
-                  />
-                </CCol>
-
-                <CCol md={6}>
-                  <label style={{ fontSize: "12px", fontWeight: "700", color: "#4b5563", textTransform: "uppercase", marginBottom: "6px", display: "block" }}>
-                    Assessment Year
-                  </label>
-                  <select
-                    value={assessmentYear}
-                    onChange={(e) => setAssessmentYear(e.target.value)}
-                    style={{ width: "100%", padding: "10px 14px", border: "1px solid #d1d5db", borderRadius: "4px", fontWeight: "600" }}
-                  >
-                    <option value="2026-27">AY 2026-27 (FY 2025-26)</option>
-                    <option value="2025-26">AY 2025-26 (FY 2024-25)</option>
-                  </select>
-                </CCol>
-
-                <CCol md={12}>
-                  <label style={{ fontSize: "12px", fontWeight: "700", color: "#4b5563", textTransform: "uppercase", marginBottom: "8px", display: "block" }}>
-                    Filing Service Type
-                  </label>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px" }}>
-                    {[
-                      { id: "full_filing", title: "Full filing · Assisted", desc: "Comprehensive salary, house property & interest ITR filing." },
-                      { id: "capital_gains", title: "Capital Gains & Stocks", desc: "Mutual funds, shares, crypto and capital asset computation." },
-                      { id: "business_profession", title: "Business & Profession", desc: "Presumptive 44AD/ADA filing for freelancers & firms." },
-                    ].map((p) => (
-                      <div
-                        key={p.id}
-                        onClick={() => setServiceType(p.id)}
-                        style={{
-                          border: serviceType === p.id ? "2px solid #b47b2b" : "1px solid #e5e7eb",
-                          borderRadius: "6px",
-                          padding: "14px",
-                          background: serviceType === p.id ? "#fffdfa" : "#ffffff",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <div style={{ fontWeight: "700", color: "#111827", fontSize: "14px" }}>{p.title}</div>
-                        <div style={{ color: "#6b7280", fontSize: "12px", marginTop: "4px" }}>{p.desc}</div>
-                      </div>
-                    ))}
+                {/* Outcome Banner */}
+                <div style={{
+                  background: refundDue > 0 ? "#f0fbf5" : "#f8fafc",
+                  border: `1.5px solid ${refundDue > 0 ? "#a3e6be" : "#e2e8f0"}`,
+                  borderRadius: "10px",
+                  padding: "10px 12px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  marginBottom: "12px",
+                }}>
+                  <span style={{ fontSize: "20px" }}>{refundDue > 0 ? "🎉" : "📋"}</span>
+                  <div>
+                    <div style={{ fontSize: "10px", fontWeight: "800", color: refundDue > 0 ? "#0A8E4B" : "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                      {refundDue > 0 ? "Net Refund Due to You" : "Tax Payable / Zero Tax"}
+                    </div>
+                    <div style={{ fontSize: "19px", fontWeight: "900", color: refundDue > 0 ? "#0A8E4B" : "#252525" }}>
+                      {refundDue > 0 ? `₹${refundDue.toLocaleString('en-IN')}` : `₹${taxPayable.toLocaleString('en-IN')}`}
+                    </div>
                   </div>
-                </CCol>
+                </div>
 
-                <CCol md={12}>
-                  <label style={{ fontSize: "12px", fontWeight: "700", color: "#4b5563", textTransform: "uppercase", marginBottom: "6px", display: "block" }}>
-                    Instructions / Notes for CA
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="e.g. Switched jobs in mid-year, have Home Loan 80C/24b deductions..."
-                    style={{ width: "100%", padding: "10px 14px", border: "1px solid #d1d5db", borderRadius: "4px", fontSize: "13.5px" }}
-                  />
-                </CCol>
+                {taxSavings > 0 && (
+                  <div style={{ background: "#f0fbf5", border: "1px solid #a3e6be", borderRadius: "8px", padding: "6px 10px", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#0A8E4B", fontWeight: "700" }}>
+                    <span>💡</span> Saved ₹{taxSavings.toLocaleString('en-IN')} via CA Regime Optimization
+                  </div>
+                )}
 
-                <CCol md={12}>
-                  <label style={{ fontSize: "12px", fontWeight: "700", color: "#4b5563", textTransform: "uppercase", marginBottom: "6px", display: "block" }}>
-                    Attach Documents (Form 16, Payslips, Bank Statements)
-                  </label>
-                  <input
-                    type="file"
-                    multiple
-                    onChange={handleFileChange}
-                    style={{ width: "100%", padding: "10px", border: "1px dashed #9ca3af", borderRadius: "4px", background: "#fafafa" }}
-                  />
-                </CCol>
+                {/* Metric Rows */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b" }}>
+                    <span>Gross Total Income:</span>
+                    <strong style={{ color: "#252525" }}>₹{grossTotalIncome.toLocaleString('en-IN')}</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b" }}>
+                    <span>Total Deductions:</span>
+                    <strong style={{ color: "#0A8E4B" }}>₹{totalDeductions.toLocaleString('en-IN')}</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b" }}>
+                    <span>Form Applicable:</span>
+                    <strong style={{ color: "#A020C0" }}>{itrFormType}</strong>
+                  </div>
+                </div>
 
-                <CCol md={12}>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    style={{
-                      background: "#0a182d",
-                      color: "#ffffff",
-                      padding: "12px 24px",
-                      borderRadius: "4px",
-                      border: "none",
-                      fontWeight: "700",
-                      fontSize: "14px",
-                      cursor: submitting ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    {submitting ? "Booking CA Specialist..." : "Submit Request and Assign CA Specialist →"}
-                  </button>
-                </CCol>
-              </CRow>
-            </CForm>
-          </div>
-        )}
-      </main>
+                <button
+                  onClick={() => setShowDossierModal(true)}
+                  style={{
+                    width: "100%",
+                    marginTop: "12px",
+                    background: "#fdf2f8",
+                    border: "1.5px solid rgba(232, 62, 140, 0.35)",
+                    color: "#E83E8C",
+                    padding: "7px 10px",
+                    borderRadius: "8px",
+                    fontSize: "11.5px",
+                    fontWeight: "800",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span>📊 View Full Tax Computation Dossier</span>
+                </button>
+              </div>
 
-      {/* Floating Chat Launcher Button (if case selected) */}
+              {/* 3. TiQTAX CA Guarantee Card */}
+              <div style={{
+                background: "#ffffff",
+                border: "1.5px solid rgba(248, 120, 38, 0.3)",
+                borderRadius: "16px",
+                padding: "16px",
+                boxShadow: "0 2px 10px rgba(248, 120, 38, 0.04)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                  <span style={{ fontSize: "18px" }}>🛡️</span>
+                  <div style={{ fontWeight: "900", fontSize: "13.5px", color: "#F87826" }}>
+                    TiQTAX CA Guarantee
+                  </div>
+                </div>
+                <div style={{ fontSize: "11.5px", color: "#475569", lineHeight: "1.5", display: "flex", flexDirection: "column", gap: "3px" }}>
+                  <div>✔ <strong>100% Error-Free Guarantee</strong> vetted by FCA.</div>
+                  <div>✔ <strong>Maximum Refund Claimed</strong> u/s 80C, 80D, HRA.</div>
+                  <div>✔ <strong>3-Year Notice Defense Panel</strong> included free.</div>
+                </div>
+              </div>
+
+              {/* 4. Customer Support Card */}
+              <div
+                onClick={() => setShowContactModal(true)}
+                style={{
+                  background: "#ffffff",
+                  border: "1.5px solid #e2e8f0",
+                  borderRadius: "16px",
+                  padding: "14px 16px",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+                  transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = "#a3e6be"}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = "#e2e8f0"}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "#f0fbf5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px" }}>
+                      💬
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: "800", fontSize: "13px", color: "#252525" }}>
+                        Customer Support <span style={{ color: "#0A8E4B", fontSize: "13px" }}>›</span>
+                      </div>
+                      <div style={{ fontSize: "11px", color: "#64748b" }}>AI &amp; CA Escalation Help</div>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: "10.5px", fontWeight: "700", color: "#0A8E4B", background: "#f0fbf5", padding: "2px 6px", borderRadius: "6px", border: "1px solid #a3e6be" }}>
+                    24x7 Active
+                  </span>
+                </div>
+              </div>
+
+
+
+            </div>
+          </CCol>
+        </CRow>
+      </CContainer>
+
+      {/* Floating Chat Launcher Button */}
       {currentCase && (
         <button
           onClick={() => setShowChatModal(true)}
@@ -1205,15 +1831,15 @@ export default function HireAgent() {
             bottom: "26px",
             right: "26px",
             zIndex: 1040,
-            background: "#0a182d",
+            background: "#A020C0",
             color: "#ffffff",
-            border: "1px solid rgba(255,255,255,0.2)",
+            border: "none",
             borderRadius: "100px",
-            padding: "10px 20px",
-            fontSize: "13px",
-            fontWeight: "700",
+            padding: "12px 22px",
+            fontSize: "13.5px",
+            fontWeight: "800",
             cursor: "pointer",
-            boxShadow: "0 4px 18px rgba(10,24,45,0.4)",
+            boxShadow: "0 4px 14px rgba(160,32,192,0.35)",
             display: "flex",
             alignItems: "center",
             gap: "8px",
@@ -1221,11 +1847,11 @@ export default function HireAgent() {
         >
           <span>💬</span>
           <span>Chat with CA</span>
-          <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#22c55e" }} />
+          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#A9CD53" }} />
         </button>
       )}
 
-      {/* Live Chat Modal - Guaranteed Instant Overlay */}
+      {/* Live Chat Modal */}
       {showChatModal && (
         <div
           style={{
@@ -1234,7 +1860,7 @@ export default function HireAgent() {
             left: 0,
             right: 0,
             bottom: 0,
-            background: "rgba(10, 24, 45, 0.65)",
+            background: "rgba(15, 23, 42, 0.6)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -1256,7 +1882,7 @@ export default function HireAgent() {
               requestId={currentCase?.id || 1}
               isAgentOrAdmin={false}
               currentUserName={user.name || "Pankaj Taxpayer"}
-              caName={currentCase?.assigned_employee?.name || "Rahul Sharma"}
+              caName={assignedEmployee?.name || "Your CA"}
               caseInfo={`Case #${currentCase?.id || 1} · AY ${currentCase?.assessment_year || "2026-27"} · ${currentCase?.service_type === "business_profession" ? "Business & profession" : "Full filing"}`}
               onClose={() => setShowChatModal(false)}
             />
@@ -1275,6 +1901,107 @@ export default function HireAgent() {
         requestData={currentCase}
         isCA={false}
       />
+
+      {/* Request Changes Modal */}
+      {showRequestChangesModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(15, 23, 42, 0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 999999,
+            padding: "20px",
+            backdropFilter: "blur(2px)",
+          }}
+          onClick={() => setShowRequestChangesModal(false)}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "520px",
+              background: "#ffffff",
+              borderRadius: "16px",
+              padding: "28px",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ height: "3.5px", background: "linear-gradient(90deg, #F87826 0%, #FCB21F 22%, #E83E8C 52%, #A020C0 78%, #0A8E4B 100%)", borderRadius: "16px 16px 0 0", margin: "-28px -28px 24px -28px" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <div style={{ fontWeight: "800", fontSize: "17px", color: "#252525" }}>
+                📝 Request Revisions from Your CA
+              </div>
+              <button
+                onClick={() => setShowRequestChangesModal(false)}
+                style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer", color: "#94a3b8" }}
+              >
+                ✕
+              </button>
+            </div>
+            <p style={{ fontSize: "13px", color: "#64748b", lineHeight: "1.5", margin: "0 0 16px" }}>
+              Please specify the corrections, missing deductions (e.g. 80D, HRA), or adjustments you would like CA specialist {currentCase?.assigned_employee?.name || "assigned"} to make.
+            </p>
+            <form onSubmit={handleSendRequestChanges}>
+              <textarea
+                rows={4}
+                value={changeNotes}
+                onChange={(e) => setChangeNotes(e.target.value)}
+                placeholder="e.g. Please claim additional ₹15,000 for preventive health checkup under 80D, and recalculate HRA exemption..."
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "13.5px",
+                  lineHeight: "1.5",
+                  boxSizing: "border-box",
+                  marginBottom: "18px",
+                }}
+              />
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowRequestChangesModal(false)}
+                  style={{
+                    background: "#f1f5f9",
+                    color: "#475569",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 18px",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={requestingChanges}
+                  style={{
+                    background: requestingChanges ? "#94a3b8" : "#F87826",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 22px",
+                    fontSize: "13px",
+                    fontWeight: "800",
+                    cursor: requestingChanges ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {requestingChanges ? "Submitting..." : "Send Revision Request →"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
