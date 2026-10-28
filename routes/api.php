@@ -70,6 +70,8 @@ Route::post('/itr/register', [ITRController::class, 'register']);
 Route::post('/payment/create-order', [\App\Http\Controllers\Api\PaymentController::class, 'createOrder']);
 Route::post('/payment/verify', [\App\Http\Controllers\Api\PaymentController::class, 'verifyPayment']);
 Route::get('/payment/status', [\App\Http\Controllers\Api\PaymentController::class, 'checkStatus']);
+Route::get('/payment/coupons', [\App\Http\Controllers\Api\PaymentController::class, 'getActiveCoupons']);
+Route::post('/payment/validate-coupon', [\App\Http\Controllers\Api\PaymentController::class, 'validateCoupon']);
 
 // Authenticated (Sanctum token)
 Route::middleware('auth:sanctum')->group(function () {

@@ -861,176 +861,64 @@ export default function ClientDetails() {
             >
               ← All Client Files
             </Link>
-            <div>
-              <div className="d-flex align-items-center gap-2">
-                <h4 style={{ fontWeight: "800", margin: 0, fontSize: "20px", color: "#1E293B", fontFamily: "Georgia, serif" }}>
-                  {client.name || "Client File"}
-                </h4>
-                <span
-                  style={{
-                    background: "rgba(240, 33, 134, 0.08)",
-                    color: "#F02186",
-                    border: "1px solid rgba(240, 33, 134, 0.2)",
-                    fontSize: "11px",
-                    fontWeight: "700",
-                    padding: "2px 8px",
-                    borderRadius: "4px",
-                    letterSpacing: "0.5px",
-                  }}
-                >
-                  PAN {pan}
-                </span>
-                {/* Strict Sequential Pipeline Stage Badge */}
-                {requestData?.pipeline_status && (
-                  <span
-                    style={{
-                      background: (PIPELINE_STATUS_MAP[requestData.pipeline_status] || PIPELINE_STATUS_MAP.request_received).bg,
-                      color: (PIPELINE_STATUS_MAP[requestData.pipeline_status] || PIPELINE_STATUS_MAP.request_received).color,
-                      fontSize: "10.5px",
-                      fontWeight: "800",
-                      padding: "2px 8px",
-                      borderRadius: "12px",
-                      border: "1px solid rgba(0,0,0,0.1)",
-                    }}
-                  >
-                    📍 {(PIPELINE_STATUS_MAP[requestData.pipeline_status] || PIPELINE_STATUS_MAP.request_received).label}
-                  </span>
-                )}
-                {/* Payment Status Badge */}
-                <span
-                  style={{
-                    background: requestData?.payment_status === "paid" ? "#dcfce7" : "#fef3c7",
-                    color: requestData?.payment_status === "paid" ? "#166534" : "#92400e",
-                    fontSize: "10.5px",
-                    fontWeight: "800",
-                    padding: "2px 8px",
-                    borderRadius: "12px",
-                    border: `1px solid ${requestData?.payment_status === "paid" ? "#86efac" : "#fde68a"}`,
-                  }}
-                >
-                  {requestData?.payment_status === "paid" ? "💳 Fee Paid ✓" : "⚠️ Payment Pending"}
-                </span>
-                <span
-                  style={{
-                    background: isFiledAndVerified
-                      ? "#15803d"
-                      : requestData?.status === "prepared"
-                      ? "#0284c7"
-                      : "#b45309",
-                    color: "#fff",
-                    fontSize: "10.5px",
-                    fontWeight: "700",
-                    padding: "2px 8px",
-                    borderRadius: "12px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {isFiledAndVerified
-                    ? "Filed & Verified"
-                    : requestData?.status === "prepared"
-                    ? "Computation Ready"
-                    : "In Preparation"}
-                </span>
-              </div>
-              <div style={{ fontSize: "12px", color: "#8ea3bf", marginTop: "3px" }}>
-                Case #{requestData?.id} · AY {requestData?.assessment_year || "2026-27"} · Service:{" "}
-                {requestData?.service_type === "business_profession" ? "Business & Profession" : "Full Filing Assisted"}
-              </div>
+            <span style={{ height: "24px", width: "1px", background: "#e2e8f0" }} />
+            <div className="d-none d-md-flex align-items-center gap-2">
+              <span style={{ fontSize: "12px", fontWeight: "800", color: "#64748b" }}>
+                Assisted ITR Filing
+              </span>
+              <span style={{ background: "#fdf2f8", color: "#E83E8C", fontSize: "10.5px", fontWeight: "800", padding: "2px 8px", borderRadius: "10px", border: "1px solid rgba(232, 62, 140, 0.25)" }}>
+                AY {requestData?.assessment_year || "2026-27"}
+              </span>
             </div>
           </div>
 
-          {/* Quick Actions Header */}
-          <div className="d-flex align-items-center gap-2 flex-wrap">
-            <CButton
-              color="light"
-              size="sm"
-              className="fw-bold d-flex align-items-center gap-1"
-              style={{ borderRadius: "6px", background: "#ffffff", color: "#142B46", border: "1px solid #cbd5e1", boxShadow: "0 2px 4px rgba(0,0,0,0.03)" }}
-              onClick={() => setShowDossierModal(true)}
+          {/* RIGHT SIDE: Minimalist active session & specialist status (Clean & Uncluttered) */}
+          <div className="d-flex align-items-center gap-3">
+            <div
+              className="d-none d-sm-flex align-items-center gap-2"
+              style={{
+                background: "#f8fafc",
+                padding: "6px 14px",
+                borderRadius: "10px",
+                border: "1px solid #e2e8f0",
+                fontSize: "12px",
+              }}
             >
-              📜 View / Export Dossier (JSON &amp; PDF)
-            </CButton>
+              <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
+              <span style={{ color: "#64748b" }}>Filing Session:</span>
+              <strong style={{ color: "#0f172a" }}>Case #{requestData?.id}</strong>
+              <span style={{ color: "#cbd5e1" }}>•</span>
+              <span style={{ fontWeight: 700, color: "#1e293b" }}>{client.name || "Client File"}</span>
+            </div>
 
-            {/* Quality Gate Button */}
-            {!isQualityGateSigned ? (
-              <CButton
-                color="warning"
-                size="sm"
-                className="fw-bold text-dark d-flex align-items-center gap-1"
-                style={{ borderRadius: "6px" }}
-                onClick={handleQualityGateSignOff}
-                disabled={submitting}
-              >
-                🔒 Sign Off Quality Gate
-              </CButton>
-            ) : (
-              <span
+            <div className="d-flex align-items-center gap-2">
+              <div
                 style={{
-                  background: "#dcfce7",
-                  color: "#166534",
-                  border: "1px solid #86efac",
-                  padding: "5px 12px",
-                  borderRadius: "6px",
+                  width: "34px",
+                  height: "34px",
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #0f172a 0%, #334155 100%)",
+                  color: "#ffffff",
                   fontSize: "12px",
-                  fontWeight: "700",
+                  fontWeight: "800",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 2px 5px rgba(0,0,0,0.12)",
                 }}
               >
-                ✓ Quality Gate Signed
-              </span>
-            )}
-
-            {/* Submit to IT Portal CTA (Sequentially Gated) */}
-            {!isFiledAndVerified && (
-              <CButton
-                color="primary"
-                size="sm"
-                className="fw-bold"
-                style={{
-                  borderRadius: "6px",
-                  background: isQualityGateSigned && isClientApproved ? "linear-gradient(135deg, #f59e0b 0%, #ec4899 50%, #c084fc 100%)" : "#94A3B8",
-                  border: "none",
-                  cursor: isQualityGateSigned && isClientApproved ? "pointer" : "not-allowed",
-                  opacity: isQualityGateSigned && isClientApproved ? 1 : 0.65,
-                }}
-                onClick={() => {
-                  if (!isQualityGateSigned || !isClientApproved) {
-                    alert(
-                      "Sequential Gating Notice:\n\n1. 4-Eye Quality Gate must be signed off by a Partner.\n2. Client must explicitly approve the computation in their portal.\n\nBoth conditions must be met before IT portal submission unlocks."
-                    );
-                    return;
-                  }
-                  setShowSubmitModal(true);
-                }}
-              >
-                🚀 Submit Return to IT Portal
-              </CButton>
-            )}
-
-            {isFiledAndVerified && (
-              <span
-                style={{
-                  background: "#dcfce7",
-                  color: "#166534",
-                  border: "1px solid #86efac",
-                  padding: "5px 12px",
-                  borderRadius: "6px",
-                  fontSize: "12px",
-                  fontWeight: "700",
-                }}
-              >
-                ✓ Return Filed ({requestData?.acknowledgement_number})
-              </span>
-            )}
+                {(requestData?.assigned_employee?.name || currentUser?.name || "CA").slice(0, 2).toUpperCase()}
+              </div>
+              <div className="d-none d-lg-block text-start">
+                <div style={{ fontSize: "12px", fontWeight: 700, color: "#1e293b", lineHeight: 1.2 }}>
+                  {requestData?.assigned_employee?.name || currentUser?.name || "CA Partner"}
+                </div>
+                <div style={{ fontSize: "10.5px", color: "#64748b", fontWeight: 500 }}>
+                  Assigned Specialist
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Quick Case Status Strip */}
-        <div style={{ marginTop: "14px", display: "flex", gap: "14px", alignItems: "center", flexWrap: "wrap", fontSize: "12px", color: "#64748b" }}>
-          <span>📋 <strong>Single Unified Workflow</strong> · AY 2026-27</span>
-          <span>•</span>
-          <span>Current Stage: <strong style={{ color: "#22c55e" }}>{isFiledAndVerified ? "Return Filed & Verified ✓" : isClientApproved ? "Client Approved ✓" : isQualityGateSigned ? "Quality Gate Passed ✓" : isComputationPrepared ? "Computation Ready" : "Drafting & Reconciliation"}</strong></span>
-          <span>•</span>
-          <span>Assigned Specialist: <strong>{requestData?.assigned_employee?.name || currentUser?.name || "CA Practitioner"}</strong></span>
         </div>
       </header>
 

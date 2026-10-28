@@ -226,6 +226,9 @@ export default function IncomeDetailsStep({
   setChosenRegime,
   isEmptyUser = false,
   hideHeader = false,
+  stepText = "Step 3 of 6: Income Details",
+  backText = "← Back to Form 16 Upload",
+  continueText = "Continue to Tax Deductions →",
   onContinue,
   onBack,
 }) {
@@ -984,7 +987,7 @@ export default function IncomeDetailsStep({
                     border: "1px solid rgba(240, 33, 134, 0.2)",
                   }}
                 >
-                  Step 2 of 6: Income Details
+                  {stepText || "Step 3 of 6: Income Details"}
                 </span>
                 <span
                   style={{
@@ -2918,7 +2921,7 @@ export default function IncomeDetailsStep({
                 onClick={onBack}
                 style={{ fontWeight: "700", borderRadius: "10px", padding: "10px 18px" }}
               >
-                ← Back
+                {backText || "← Back to Form 16 Upload"}
               </CButton>
             )}
 
@@ -2951,7 +2954,7 @@ export default function IncomeDetailsStep({
                 color: "#ffffff",
               }}
             >
-              Continue to Form 16 Upload →
+              {continueText || "Continue to Tax Deductions →"}
             </CButton>
           </div>
         </div>

@@ -235,11 +235,47 @@
 }
 
 @media (max-width: 768px) {
+  .contact-hero-3d {
+    padding: 5rem 0 2.5rem;
+    min-height: auto;
+  }
+
   .contact-hero-content h1 {
-    font-size: 2.8rem;
+    font-size: clamp(2rem, 8vw, 2.5rem);
+  }
+
+  .contact-hero-content p {
+    font-size: 1rem;
+  }
+
+  .contact-main-grid {
+    gap: 2rem;
+  }
+
+  .info-card-3d {
+    padding: 1.5rem 1.25rem;
+    gap: 1rem;
+  }
+
+  .info-icon-3d {
+    padding: 1rem;
   }
 
   .main-info {
     font-size: 1.1rem;
+  }
+
+  .contact-form-3d {
+    padding: 1.75rem 1.25rem;
+    border-radius: 20px;
+  }
+
+  .form-header-3d h2 {
+    font-size: clamp(1.6rem, 6vw, 2rem);
+  }
+
+  .btn-3d-glow-large {
+    padding: 1.1rem 1.5rem;
+    font-size: 1rem;
   }
 }

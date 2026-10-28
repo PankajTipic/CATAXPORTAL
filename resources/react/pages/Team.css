@@ -252,7 +252,44 @@
 }
 
 @media (max-width: 768px) {
-  .team-hero-content h1 {
-    font-size: 2.8rem;
+  .team-hero-3d {
+    padding: 5rem 0 2.5rem;
+    min-height: auto;
   }
+
+  .team-hero-content h1 {
+    font-size: clamp(2rem, 8vw, 2.5rem);
+  }
+
+  .team-card-3d {
+    border-radius: 20px;
+  }
+
+  .member-image-3d {
+    height: 320px;
+  }
+
+  .member-info-3d {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .culture-3d-grid {
+    gap: 2.5rem;
+  }
+
+  .culture-cube-3d {
+    width: 140px;
+    height: 140px;
+  }
+
+  .cube-face {
+    width: 140px;
+    height: 140px;
+    font-size: 1rem;
+  }
+
+  .front { transform: translateZ(70px); }
+  .back { transform: rotateY(180deg) translateZ(70px); }
+  .right { transform: rotateY(90deg) translateZ(70px); }
+  .left { transform: rotateY(-90deg) translateZ(70px); }
 }

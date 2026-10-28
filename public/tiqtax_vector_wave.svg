@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120" preserveAspectRatio="none" style="width:100%; height:100%; display:block;">
+  <defs>
+    <!-- Rich emerald gradient for the base & left wave -->
+    <linearGradient id="waveEmerald" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00875A" />
+      <stop offset="35%" stop-color="#059669" />
+      <stop offset="70%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#34D399" />
+    </linearGradient>
+
+    <!-- Vibrant warm orange to coral gradient -->
+    <linearGradient id="waveOrange" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF7A00" />
+      <stop offset="50%" stop-color="#FF5E00" />
+      <stop offset="100%" stop-color="#FF3366" />
+    </linearGradient>
+
+    <!-- Warm sunny golden yellow ribbon -->
+    <linearGradient id="waveYellow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FBBF24" />
+      <stop offset="60%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#FB923C" />
+    </linearGradient>
+
+    <!-- Hot pink to violet gradient ribbon -->
+    <linearGradient id="waveMagenta" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF1493" />
+      <stop offset="50%" stop-color="#EE0979" />
+      <stop offset="100%" stop-color="#9013FE" />
+    </linearGradient>
+
+    <!-- Far left high wave gradient -->
+    <linearGradient id="waveLeftHill" x1="0%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#00875A" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+
+    <!-- Far left upper orange crest -->
+    <linearGradient id="waveLeftOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF9E40" />
+      <stop offset="100%" stop-color="#FF7A00" />
+    </linearGradient>
+  </defs>
+
+  <!-- Far Left Upper Warm Orange Crest -->
+  <path d="M 0,0 C 25,25 65,55 120,80 C 160,98 210,112 280,120 L 0,120 Z" fill="url(#waveLeftOrange)" opacity="0.85" />
+
+  <!-- Far Left Green Wave Rising on the Left Border -->
+  <path d="M 0,15 C 35,45 80,75 140,95 C 195,112 250,118 310,120 L 0,120 Z" fill="url(#waveLeftHill)" />
+
+  <!-- Base Flowing Emerald Band across bottom -->
+  <path d="M 0,85 C 140,88 280,95 440,102 C 640,110 880,114 1140,116 L 1440,118 L 1440,120 L 0,120 Z" fill="url(#waveEmerald)" />
+
+  <!-- Flowing Golden Yellow Ribbon -->
+  <path d="M 120,120 C 190,92 280,82 390,88 C 500,94 600,106 690,120 Z" fill="url(#waveYellow)" opacity="0.95" />
+
+  <!-- Flowing Orange Ribbon overlapping -->
+  <path d="M 240,120 C 330,86 440,78 560,82 C 670,86 780,102 880,120 Z" fill="url(#waveOrange)" opacity="0.9" />
+
+  <!-- Radiant Magenta / Pink Crest sweeping toward right -->
+  <path d="M 450,120 C 560,78 680,72 800,78 C 910,84 1020,104 1120,120 Z" fill="url(#waveMagenta)" opacity="0.95" />
+</svg>

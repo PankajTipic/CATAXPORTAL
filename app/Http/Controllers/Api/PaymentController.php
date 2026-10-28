@@ -96,7 +96,7 @@ class PaymentController extends Controller
             'prefill' => [
                 'name' => $user ? $user->name : 'Taxpayer',
                 'email' => $user ? $user->email : 'taxpayer@example.com',
-                'contact' => $user ? ($user->phone ?? '9876543210') : '9876543210',
+                'contact' => (is_string($keyId) && str_starts_with($keyId, 'rzp_test_')) ? '9999999999' : ($user ? ($user->phone ?? '9876543210') : '9876543210'),
             ],
         ]);
     }
@@ -162,6 +162,24 @@ class PaymentController extends Controller
         $paymentDetails['method'] = $request->input('method', 'razorpay_checkout');
         if ($agentRequestId) {
             $paymentDetails['agent_request_id'] = $agentRequestId;
+        }
+        $couponCode = $request->input('coupon_code');
+        if ($couponCode) {
+            $paymentDetails['coupon_code'] = $couponCode;
+            $paymentDetails['discount_amount'] = (float)$request->input('discount_amount', 0);
+            try {
+                $coupons = $this->loadCoupons();
+                foreach ($coupons as $k => $c) {
+                    if (strtoupper($c['code']) === strtoupper($couponCode)) {
+                        $coupons[$k]['used_count'] = ($coupons[$k]['used_count'] ?? 0) + 1;
+                        $coupons[$k]['total_savings_given'] = ($coupons[$k]['total_savings_given'] ?? 0) + (float)$request->input('discount_amount', 0);
+                        $this->saveCouponsFile($coupons);
+                        break;
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Failed to update coupon usage: ' . $e->getMessage());
+            }
         }
         $payment->payment_details = $paymentDetails;
         $payment->save();
@@ -426,6 +444,124 @@ class PaymentController extends Controller
             'message' => "Refund of ₹{$refundAmount} processed successfully (Ref: {$refundId}).",
             'payment' => $payment,
             'refund_id' => $refundId,
+        ]);
+    }
+
+    /**
+     * Public/Client: Get Active Coupons for Checkout
+     */
+    public function getActiveCoupons(Request $request)
+    {
+        $service = $request->query('service'); // 'self_filing' | 'ca_assisted' | 'notice_defense'
+        $coupons = $this->loadCoupons();
+        $today = now()->toDateString();
+
+        $active = array_filter($coupons, function ($cpn) use ($service, $today) {
+            if (empty($cpn['is_active'])) return false;
+            if (!empty($cpn['expiry_date']) && $cpn['expiry_date'] < $today) return false;
+            if (isset($cpn['max_uses']) && isset($cpn['used_count']) && $cpn['used_count'] >= $cpn['max_uses']) return false;
+            if ($service && !in_array($cpn['applies_to'] ?? 'all', ['all', $service])) return false;
+            return true;
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => array_values($active),
+        ]);
+    }
+
+    /**
+     * Public/Client: Validate a Coupon Code for Checkout
+     */
+    public function validateCoupon(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string',
+            'amount' => 'required|numeric|min:1',
+            'service' => 'nullable|string',
+        ]);
+
+        $code = strtoupper(trim($request->input('code')));
+        $amount = (float)$request->input('amount');
+        $service = $request->input('service'); // 'self_filing' | 'ca_assisted' | 'notice_defense'
+
+        $coupons = $this->loadCoupons();
+        $matched = null;
+
+        foreach ($coupons as $cpn) {
+            if (strtoupper($cpn['code']) === $code) {
+                $matched = $cpn;
+                break;
+            }
+        }
+
+        if (!$matched) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Coupon code '{$code}' is invalid.",
+            ], 404);
+        }
+
+        if (empty($matched['is_active'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Coupon code '{$code}' is currently inactive or disabled.",
+            ], 422);
+        }
+
+        $today = now()->toDateString();
+        if (!empty($matched['expiry_date']) && $matched['expiry_date'] < $today) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Coupon code '{$code}' expired on {$matched['expiry_date']}.",
+            ], 422);
+        }
+
+        if (isset($matched['max_uses']) && isset($matched['used_count']) && $matched['used_count'] >= $matched['max_uses']) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Coupon code '{$code}' has reached its maximum redemptions limit.",
+            ], 422);
+        }
+
+        if ($service && !in_array($matched['applies_to'] ?? 'all', ['all', $service])) {
+            $applicableLabel = match($matched['applies_to']) {
+                'self_filing' => 'DIY Self ITR Filing only',
+                'ca_assisted' => 'CA Assisted Filing only',
+                'notice_defense' => 'Notice Defense only',
+                default => 'All Services',
+            };
+            return response()->json([
+                'status' => 'error',
+                'message' => "Coupon code '{$code}' is valid for {$applicableLabel}.",
+            ], 422);
+        }
+
+        $minOrder = (float)($matched['min_order_value'] ?? 0);
+        if ($amount < $minOrder) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Minimum order value of ₹{$minOrder} required to apply coupon '{$code}'.",
+            ], 422);
+        }
+
+        // Calculate discount
+        $discountAmount = 0;
+        if ($matched['discount_type'] === 'percentage') {
+            $discountAmount = round(($amount * (float)$matched['discount_value']) / 100, 2);
+        } else {
+            $discountAmount = min($amount, (float)$matched['discount_value']);
+        }
+
+        $finalAmount = max(0, round($amount - $discountAmount, 2));
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Promo coupon '{$code}' applied! You save ₹{$discountAmount}.",
+            'coupon' => $matched,
+            'discount_amount' => $discountAmount,
+            'original_amount' => $amount,
+            'final_amount' => $finalAmount,
         ]);
     }
 
@@ -803,4 +939,5 @@ class PaymentController extends Controller
         }
     }
 }
+
 

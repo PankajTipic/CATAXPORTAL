@@ -118,6 +118,9 @@ export default function SelectRegimeStep({
   onBack,
   selectedItrForm = "ITR-1",
   taxpayerCategory = "Individual",
+  stepText = "STEP 5 OF 6: REGIME SELECTOR",
+  backText = "Back to Deductions",
+  continueText = "Review & Finalize Filing",
 }) {
   const [showDetailedComputation, setShowDetailedComputation] = useState(false);
 
@@ -378,7 +381,7 @@ export default function SelectRegimeStep({
               border: "1px solid rgba(240, 33, 134, 0.2)",
             }}
           >
-            STEP 5 OF 6: REGIME SELECTOR
+            {stepText || "STEP 5 OF 6: REGIME SELECTOR"}
           </span>
           <h2
             style={{
@@ -1030,7 +1033,7 @@ export default function SelectRegimeStep({
               gap: "6px",
             }}
           >
-            <ArrowLeft size={16} /> Back to Deductions
+            <ArrowLeft size={16} /> {backText || "Back to Deductions"}
           </CButton>
 
           <div className="d-flex align-items-center gap-3">
@@ -1059,7 +1062,7 @@ export default function SelectRegimeStep({
                 transition: "all 0.2s ease-in-out",
               }}
             >
-              Review &amp; Finalize Filing <ArrowRight size={17} />
+              {continueText || "Review & Finalize Filing"} <ArrowRight size={17} />
             </button>
           </div>
         </div>

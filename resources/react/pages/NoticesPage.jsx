@@ -15,7 +15,7 @@ export default function NoticesPage() {
       <nav style={{ background: "#0b1f3a", color: "#fff", padding: "16px 0", borderBottom: "3px solid #1e3a8a" }}>
         <CContainer>
           <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div className="d-flex align-items-center gap-3">
+            <div className="d-flex align-items-center gap-2 flex-wrap">
               <img
                 src={logo}
                 alt="TiQTAX"

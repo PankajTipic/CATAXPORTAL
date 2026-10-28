@@ -772,9 +772,9 @@ export default function NoticesSection({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(175px, 1fr))",
-            gap: "14px",
-            marginTop: "22px",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 140px), 1fr))",
+            gap: "12px",
+            marginTop: "20px",
           }}
         >
           <div

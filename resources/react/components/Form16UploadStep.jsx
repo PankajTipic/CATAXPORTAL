@@ -25,6 +25,9 @@ export default function Form16UploadStep({
   setDeductionData,
   totalTdsCredit = 0,
   userPan = "",
+  stepText = "Step 2 of 6 · Form 16",
+  backText = "← Back to ITR Form",
+  continueText = "Accept Form 16 Values & Continue to Income Details →",
   onContinue,
   onBack,
   onViewDoc,
@@ -129,7 +132,7 @@ export default function Form16UploadStep({
               border: "1px solid rgba(240, 33, 134, 0.2)",
             }}
           >
-            Step 3 of 6 · Form 16
+            {stepText || "Step 2 of 6 · Form 16"}
           </span>
           <span
             style={{
@@ -151,7 +154,7 @@ export default function Form16UploadStep({
         </h2>
         <p style={{ fontSize: "13.5px", color: "#475569", margin: 0, maxWidth: "780px" }}>
           Upload your Form 16 (Part A &amp; B). We will extract Gross Salary, TDS, Employer details and
-          deductions, then reconcile them with the data you entered in the previous step.
+          deductions to pre-fill and verify your Income Details in the next step.
         </p>
       </div>
 
@@ -578,7 +581,7 @@ export default function Form16UploadStep({
                 onClick={onBack}
                 style={{ fontWeight: "700", borderRadius: "10px", padding: "10px 18px" }}
               >
-                ← Back to Income
+                {backText || "← Back to ITR Form"}
               </CButton>
             )}
 
@@ -603,7 +606,7 @@ export default function Form16UploadStep({
                     <CSpinner size="sm" className="me-2" /> Applying…
                   </>
                 ) : (
-                  "Accept Form 16 Values & Continue →"
+                  continueText || "Accept Form 16 Values & Continue to Income Details →"
                 )}
               </CButton>
             ) : (
@@ -620,7 +623,7 @@ export default function Form16UploadStep({
                   color: "#ffffff",
                 }}
               >
-                Skip & Continue Manually →
+                {continueText ? `Skip & Continue →` : "Skip & Continue to Income Details →"}
               </CButton>
             )}
           </div>

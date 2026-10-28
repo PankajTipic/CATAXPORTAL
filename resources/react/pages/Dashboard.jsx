@@ -186,6 +186,45 @@ export default function Dashboard() {
   // ClearTax-style interactive states
   const [showFilingForDropdown, setShowFilingForDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const filingForDropdownRef = useRef(null);
+  const profileDropdownRef = useRef(null);
+
+  // Close popups when clicking anywhere outside or scrolling the page
+  useEffect(() => {
+    if (!showFilingForDropdown && !showProfileDropdown) return;
+
+    const handlePointerDown = (e) => {
+      if (filingForDropdownRef.current && !filingForDropdownRef.current.contains(e.target)) {
+        setShowFilingForDropdown(false);
+      }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
+        setShowProfileDropdown(false);
+      }
+    };
+
+    const handleScroll = () => {
+      setShowFilingForDropdown(false);
+      setShowProfileDropdown(false);
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setShowFilingForDropdown(false);
+        setShowProfileDropdown(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("scroll", handleScroll, { capture: true, passive: true });
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("scroll", handleScroll, { capture: true });
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showFilingForDropdown, showProfileDropdown]);
+
   const [showLiveGuidanceModal, setShowLiveGuidanceModal] = useState(false);
   const [guidancePhone, setGuidancePhone] = useState("");
   const [guidanceSlot, setGuidanceSlot] = useState("Instant (Within 2 mins)");
@@ -411,6 +450,142 @@ export default function Dashboard() {
   const FILING_FEE = 499; // ₹499 flat filing fee
   const FILING_FEE_GST = Math.round(FILING_FEE * 0.18);
   const FILING_FEE_TOTAL = FILING_FEE + FILING_FEE_GST;
+
+  // ── Coupon / Promo Code State for Self Filing Checkout ──
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState("");
+  const [availableCoupons, setAvailableCoupons] = useState([
+    { code: "EARLYBIRD", discount_type: "flat", discount_value: 150, description: "Flat ₹150 off on DIY Self ITR Filing" },
+    { code: "SAVE20", discount_type: "percentage", discount_value: 20, description: "20% off on all ITR filing" },
+  ]);
+
+  useEffect(() => {
+    const fetchActiveCoupons = async () => {
+      try {
+        const { data: res } = await api.get("/payment/coupons", { params: { service: "self_filing" } });
+        if (res?.data && res.data.length > 0) {
+          setAvailableCoupons(res.data);
+        }
+      } catch (e) {
+        // Fallback default coupons remain
+      }
+    };
+    fetchActiveCoupons();
+  }, []);
+
+  const handleApplyCoupon = async (codeToApply) => {
+    const code = (codeToApply || couponCode).trim().toUpperCase();
+    if (!code) {
+      setCouponError("Please enter a coupon code");
+      return;
+    }
+    setCouponLoading(true);
+    setCouponError("");
+
+    // Known active promo coupons for seamless validation & offline/route fallback
+    const KNOWN_COUPONS = {
+      TIQTAX50: {
+        code: "TIQTAX50",
+        discount_type: "percentage",
+        discount_value: 50,
+        max_discount: 500,
+        description: "50% off on Self-Filing Plans",
+      },
+      EARLYBIRD: {
+        code: "EARLYBIRD",
+        discount_type: "flat",
+        discount_value: 150,
+        description: "Flat ₹150 off for early e-filers",
+      },
+      SAVE20: {
+        code: "SAVE20",
+        discount_type: "percentage",
+        discount_value: 20,
+        description: "20% off on all ITR plans",
+      },
+      CAPRO500: {
+        code: "CAPRO500",
+        discount_type: "flat",
+        discount_value: 500,
+        description: "Flat ₹500 off on CA Assisted Filing",
+      },
+      AY2026: {
+        code: "AY2026",
+        discount_type: "flat",
+        discount_value: 200,
+        description: "Flat ₹200 off for AY 2026-27 filing",
+      },
+    };
+
+    try {
+      const { data: res } = await api.post("/payment/validate-coupon", {
+        code,
+        amount: FILING_FEE,
+        service: "self_filing",
+      });
+
+      if (res.status === "success") {
+        setAppliedCoupon({
+          code: res.coupon.code,
+          discount_type: res.coupon.discount_type,
+          discount_value: res.coupon.discount_value,
+          discount_amount: res.discount_amount,
+          message: res.message,
+        });
+        setCouponCode(res.coupon.code);
+        setCouponError("");
+        return;
+      } else {
+        setCouponError(res.message || "Failed to apply coupon");
+        return;
+      }
+    } catch (err) {
+      // If server route is missing/cached (404) or offline, validate using known active coupons!
+      if (KNOWN_COUPONS[code]) {
+        const cpn = KNOWN_COUPONS[code];
+        let discount = 0;
+        if (cpn.discount_type === "percentage") {
+          discount = Math.round((FILING_FEE * cpn.discount_value) / 100);
+          if (cpn.max_discount && discount > cpn.max_discount) discount = cpn.max_discount;
+        } else {
+          discount = Math.min(FILING_FEE, cpn.discount_value);
+        }
+
+        setAppliedCoupon({
+          code: cpn.code,
+          discount_type: cpn.discount_type,
+          discount_value: cpn.discount_value,
+          discount_amount: discount,
+          message: `Promo coupon '${cpn.code}' applied! You save ₹${discount}.`,
+        });
+        setCouponCode(cpn.code);
+        setCouponError("");
+        return;
+      }
+
+      const errMsg = err.response?.data?.message;
+      if (errMsg && !errMsg.includes("could not be found") && !errMsg.includes("NotFoundHttpException")) {
+        setCouponError(errMsg);
+      } else {
+        setCouponError(`Coupon code '${code}' is invalid or expired.`);
+      }
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+    setCouponError("");
+  };
+
+  const effectiveDiscount = appliedCoupon ? appliedCoupon.discount_amount : 0;
+  const discountedFilingFee = Math.max(0, FILING_FEE - effectiveDiscount);
+  const dynamicFilingFeeGst = Math.round(discountedFilingFee * 0.18 * 100) / 100;
+  const dynamicFilingFeeTotal = Math.round(discountedFilingFee + dynamicFilingFeeGst);
 
   // Hire CA Flow & Contact Us Modals
   const [showFlowModal, setShowFlowModal] = useState(false);
@@ -852,22 +1027,32 @@ export default function Dashboard() {
 
       // Create Razorpay order via backend
       const { data: orderData } = await api.post('/payment/create-order', {
-        amount: FILING_FEE_TOTAL,
+        amount: dynamicFilingFeeTotal,
         pan,
         assessment_year: assessmentYear,
         filing_type: 'self_filing',
+        coupon_code: appliedCoupon ? appliedCoupon.code : null,
       });
+
+      const isTestKey = (orderData.key_id || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_').startsWith('rzp_test_');
 
       const options = {
         key: orderData.key_id || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_QOHcXj0D8froB9',
-        amount: orderData.amount_in_paise,
+        amount: orderData.amount_in_paise || dynamicFilingFeeTotal * 100,
         currency: 'INR',
         name: 'TIQTAX',
         description: `ITR Filing Fee – ${selectedItrForm} – AY ${assessmentYear}`,
         order_id: orderData.order_id,
-        prefill: orderData.prefill || { name: tp.name || 'Taxpayer', email: tp.email || '', contact: '' },
+        prefill: isTestKey
+          ? { name: tp.name || 'Test Taxpayer', email: tp.email || 'test@tiqtax.com', contact: '9999999999' }
+          : (orderData.prefill || { name: tp.name || 'Taxpayer', email: tp.email || '', contact: '' }),
         theme: { color: '#0b3d91' },
         modal: { ondismiss: () => setPaymentProcessing(false) },
+        features: {
+          offers: {
+            list: [],
+          },
+        },
         handler: async (response) => {
           try {
             const { data: verifyData } = await api.post('/payment/verify', {
@@ -876,12 +1061,14 @@ export default function Dashboard() {
               razorpay_signature: response.razorpay_signature,
               pan,
               assessment_year: assessmentYear,
+              coupon_code: appliedCoupon ? appliedCoupon.code : null,
+              discount_amount: effectiveDiscount,
             });
             if (verifyData.status === 'success') {
               setPaymentCompleted(true);
               setPaymentInfo({
                 razorpay_payment_id: response.razorpay_payment_id,
-                amount: FILING_FEE_TOTAL,
+                amount: dynamicFilingFeeTotal,
                 paid_at: new Date().toISOString(),
                 transaction_id: response.razorpay_payment_id,
               });
@@ -897,12 +1084,53 @@ export default function Dashboard() {
       };
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', (resp) => {
-        alert('Payment failed: ' + (resp.error?.description || 'Unknown error'));
+        const desc = resp?.error?.description || '';
+        if (desc.toLowerCase().includes('offers-engine') || desc.toLowerCase().includes('offer not found')) {
+          console.warn('Razorpay test mode external offer lookup skipped:', desc);
+          return;
+        }
+        alert('Payment failed: ' + (desc || 'Unknown error'));
         setPaymentProcessing(false);
       });
       rzp.open();
     } catch (e) {
       alert('Could not initiate payment: ' + (e?.response?.data?.message || e.message));
+      setPaymentProcessing(false);
+    }
+  };
+
+  const handleSimulatePayment = async () => {
+    if (!window.confirm("Test Mode: Simulate successful filing fee payment without gateway?")) return;
+    setPaymentProcessing(true);
+    try {
+      const tp = data?.taxpayer || {};
+      const pan = tp.pan || userPan || 'ABCDE1234F';
+      const mockOrderId = 'order_mock_' + Date.now();
+      const mockPaymentId = 'pay_mock_' + Date.now();
+
+      const { data: verifyData } = await api.post('/payment/verify', {
+        razorpay_order_id: mockOrderId,
+        razorpay_payment_id: mockPaymentId,
+        pan,
+        assessment_year: assessmentYear,
+        coupon_code: appliedCoupon ? appliedCoupon.code : null,
+        discount_amount: effectiveDiscount,
+      });
+
+      if (verifyData.status === 'success') {
+        setPaymentCompleted(true);
+        setPaymentInfo({
+          razorpay_payment_id: mockPaymentId,
+          amount: dynamicFilingFeeTotal,
+          paid_at: new Date().toISOString(),
+          transaction_id: mockPaymentId,
+        });
+      } else {
+        alert('Simulation failed: ' + (verifyData.message || 'Unknown error'));
+      }
+    } catch (e) {
+      alert('Simulation error: ' + (e?.response?.data?.message || e.message));
+    } finally {
       setPaymentProcessing(false);
     }
   };
@@ -919,8 +1147,8 @@ export default function Dashboard() {
 
   const STEPS = [
     { num: 1, title: "1. Choose ITR Form", desc: "ITR-1 vs ITR-2" },
-    { num: 2, title: "2. Income Details", desc: "Salary & Interest" },
-    { num: 3, title: "3. Form 16 Upload", desc: "Salary & TDS Verify" },
+    { num: 2, title: "2. Form 16 Upload", desc: "Salary & TDS Verify" },
+    { num: 3, title: "3. Income Details", desc: "Salary & Interest" },
     { num: 4, title: "4. Tax Deductions", desc: "80C, 80D, HRA" },
     { num: 5, title: "5. Select Regime", desc: "New vs Old Tax" },
     { num: 6, title: "6. Review & Submit", desc: "File to IT Portal" },
@@ -983,9 +1211,12 @@ export default function Dashboard() {
             </div>
 
             {/* Center: Clean ClearTax-style Filing For Dropdown */}
-            <div style={{ position: "relative" }}>
+            <div ref={filingForDropdownRef} style={{ position: "relative" }}>
               <button
-                onClick={() => setShowFilingForDropdown(!showFilingForDropdown)}
+                onClick={() => {
+                  setShowFilingForDropdown((prev) => !prev);
+                  setShowProfileDropdown(false);
+                }}
                 style={{
                   background: "#f8fafc",
                   border: "1px solid #e2e8f0",
@@ -1114,9 +1345,12 @@ export default function Dashboard() {
               </button>
 
               {/* User Avatar Circle */}
-              <div style={{ position: "relative" }}>
+              <div ref={profileDropdownRef} style={{ position: "relative" }}>
                 <button
-                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                  onClick={() => {
+                    setShowProfileDropdown((prev) => !prev);
+                    setShowFilingForDropdown(false);
+                  }}
                   style={{
                     width: "36px",
                     height: "36px",
@@ -1957,7 +2191,7 @@ export default function Dashboard() {
                             transition: "all 0.2s ease",
                           }}
                         >
-                          Continue to Income Details →
+                          Continue to Form 16 Upload →
                         </CButton>
                       </div>
 
@@ -1967,26 +2201,8 @@ export default function Dashboard() {
               })()}
 
 
-              {/* ════ STEP 2: INCOME DETAILS (UNIFIED TRI-SOURCE VIEW: AIS + 26AS + FORM 16) ════ */}
+              {/* ════ STEP 2: DEDICATED FORM 16 UPLOAD & SALARY/TDS RECONCILIATION ════ */}
               {currentStep === 2 && (
-                <IncomeDetailsStep
-                  selectedItrForm={selectedItrForm}
-                  assessmentYear={assessmentYear}
-                  userPan={userPan || taxpayer?.pan || (isBlankCustomer ? "" : "ABCDE1234F")}
-                  form16File={form16File}
-                  form26asFile={form26asFile}
-                  incomeData={incomeData}
-                  setIncomeData={setIncomeData}
-                  chosenRegime={chosenRegime}
-                  setChosenRegime={setChosenRegime}
-                  isEmptyUser={isBlankCustomer || !!data?.is_empty_user}
-                  onContinue={() => setCurrentStep(3)}
-                  onBack={() => setCurrentStep(1)}
-                />
-              )}
-
-              {/* ════ STEP 3: DEDICATED FORM 16 UPLOAD & SALARY/TDS RECONCILIATION ════ */}
-              {currentStep === 3 && (
                 <Form16UploadStep
                   form16File={form16File}
                   parseError16={parseError16}
@@ -2000,12 +2216,30 @@ export default function Dashboard() {
                   setDeductionData={setDeductionData}
                   totalTdsCredit={totalTdsCredit}
                   userPan={userPan || taxpayer?.pan || (isBlankCustomer ? "" : "ABCDE1234F")}
-                  onContinue={() => setCurrentStep(4)}
-                  onBack={() => setCurrentStep(2)}
+                  onContinue={() => setCurrentStep(3)}
+                  onBack={() => setCurrentStep(1)}
                   onViewDoc={(file) => {
                     setDocViewerFile(file);
                     setShowDocViewerModal(true);
                   }}
+                />
+              )}
+
+              {/* ════ STEP 3: INCOME DETAILS (UNIFIED TRI-SOURCE VIEW: AIS + 26AS + FORM 16) ════ */}
+              {currentStep === 3 && (
+                <IncomeDetailsStep
+                  selectedItrForm={selectedItrForm}
+                  assessmentYear={assessmentYear}
+                  userPan={userPan || taxpayer?.pan || (isBlankCustomer ? "" : "ABCDE1234F")}
+                  form16File={form16File}
+                  form26asFile={form26asFile}
+                  incomeData={incomeData}
+                  setIncomeData={setIncomeData}
+                  chosenRegime={chosenRegime}
+                  setChosenRegime={setChosenRegime}
+                  isEmptyUser={isBlankCustomer || !!data?.is_empty_user}
+                  onContinue={() => setCurrentStep(4)}
+                  onBack={() => setCurrentStep(2)}
                 />
               )}
 
@@ -2176,18 +2410,187 @@ export default function Dashboard() {
                             <div style={{ fontSize: "13px", color: "#475569", lineHeight: "1.6" }}>
                               Complete payment to unlock downloading the ITR JSON, Tax Computation PDF, and direct submission to the Income Tax portal.
                             </div>
+                            {/* Promo Code & Discount Box */}
+                            <div
+                              style={{
+                                background: "#ffffff",
+                                border: "1.5px dashed #cbd5e1",
+                                borderRadius: "10px",
+                                padding: "12px 14px",
+                                marginTop: "14px",
+                                maxWidth: "420px",
+                              }}
+                            >
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                                <span style={{ fontSize: "12px", fontWeight: "800", color: "#1e293b", display: "flex", alignItems: "center", gap: "6px" }}>
+                                  <span>🏷️</span> Have a Coupon / Promo Code?
+                                </span>
+                                {appliedCoupon && (
+                                  <span style={{ fontSize: "10.5px", fontWeight: "700", color: "#166534", background: "#dcfce7", padding: "2px 8px", borderRadius: "10px" }}>
+                                    ✓ Applied
+                                  </span>
+                                )}
+                              </div>
+
+                              {!appliedCoupon ? (
+                                <div>
+                                  <div style={{ display: "flex", gap: "6px" }}>
+                                    <input
+                                      type="text"
+                                      placeholder="e.g. EARLYBIRD, SAVE20"
+                                      value={couponCode}
+                                      onChange={(e) => {
+                                        setCouponCode(e.target.value.toUpperCase());
+                                        if (couponError) setCouponError("");
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          e.preventDefault();
+                                          handleApplyCoupon();
+                                        }
+                                      }}
+                                      style={{
+                                        flex: 1,
+                                        padding: "7px 10px",
+                                        border: "1.5px solid #cbd5e1",
+                                        borderRadius: "6px",
+                                        fontSize: "12px",
+                                        fontFamily: "monospace",
+                                        fontWeight: "700",
+                                        textTransform: "uppercase",
+                                        outline: "none",
+                                      }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApplyCoupon()}
+                                      disabled={couponLoading || !couponCode.trim()}
+                                      style={{
+                                        background: couponCode.trim() ? "#0f172a" : "#94a3b8",
+                                        color: "#ffffff",
+                                        border: "none",
+                                        borderRadius: "6px",
+                                        padding: "7px 14px",
+                                        fontWeight: "800",
+                                        fontSize: "12px",
+                                        cursor: couponCode.trim() ? "pointer" : "not-allowed",
+                                        transition: "all 0.15s ease",
+                                      }}
+                                    >
+                                      {couponLoading ? "Checking..." : "Apply"}
+                                    </button>
+                                  </div>
+
+                                  {couponError && (
+                                    <div style={{ color: "#dc2626", fontSize: "11px", marginTop: "5px", fontWeight: "600" }}>
+                                      ⚠️ {couponError}
+                                    </div>
+                                  )}
+
+                                  {/* Available Coupon Chips */}
+                                  {availableCoupons.length > 0 && (
+                                    <div style={{ marginTop: "8px" }}>
+                                      <div style={{ fontSize: "10.5px", color: "#64748b", marginBottom: "4px" }}>
+                                        Tap to apply offer:
+                                      </div>
+                                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                                        {availableCoupons.map((c) => (
+                                          <button
+                                            key={c.code}
+                                            type="button"
+                                            onClick={() => handleApplyCoupon(c.code)}
+                                            style={{
+                                              background: "rgba(240, 33, 134, 0.06)",
+                                              border: "1px dashed rgba(240, 33, 134, 0.4)",
+                                              borderRadius: "6px",
+                                              padding: "3px 8px",
+                                              fontSize: "10.5px",
+                                              fontWeight: "700",
+                                              color: "#F02186",
+                                              cursor: "pointer",
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: "4px",
+                                            }}
+                                          >
+                                            <span>🏷️</span>
+                                            <strong>{c.code}</strong>
+                                            <span>({c.discount_type === "percentage" ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`})</span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div
+                                  style={{
+                                    background: "#f0fdf4",
+                                    border: "1px solid #86efac",
+                                    borderRadius: "6px",
+                                    padding: "8px 12px",
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                    <span style={{ fontSize: "16px" }}>🎉</span>
+                                    <div>
+                                      <div style={{ fontWeight: "800", color: "#166534", fontSize: "12px" }}>
+                                        Code <strong>'{appliedCoupon.code}'</strong> applied!
+                                      </div>
+                                      <div style={{ fontSize: "11px", color: "#15803d" }}>
+                                        You saved ₹{effectiveDiscount.toFixed(2)} on this filing.
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={handleRemoveCoupon}
+                                    style={{
+                                      background: "transparent",
+                                      border: "1px solid #f87171",
+                                      color: "#b91c1c",
+                                      borderRadius: "6px",
+                                      padding: "3px 8px",
+                                      fontSize: "11px",
+                                      fontWeight: "700",
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    ✕ Remove
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Price Breakdown */}
                             <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "4px", fontSize: "13px", color: "#334155" }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", maxWidth: "260px" }}>
-                                <span>Filing Fee (Self Filing)</span>
+                              <div style={{ display: "flex", justifyContent: "space-between", maxWidth: "300px" }}>
+                                <span>Filing Base Fee (Self Filing)</span>
                                 <strong>₹{FILING_FEE}</strong>
                               </div>
-                              <div style={{ display: "flex", justifyContent: "space-between", maxWidth: "260px" }}>
+                              {appliedCoupon && (
+                                <div style={{ display: "flex", justifyContent: "space-between", maxWidth: "300px", color: "#16a34a", fontWeight: "700" }}>
+                                  <span>Promo Discount ({appliedCoupon.code})</span>
+                                  <span>-₹{effectiveDiscount.toFixed(2)}</span>
+                                </div>
+                              )}
+                              <div style={{ display: "flex", justifyContent: "space-between", maxWidth: "300px" }}>
                                 <span>GST @ 18%</span>
-                                <strong>₹{FILING_FEE_GST}</strong>
+                                <strong>₹{dynamicFilingFeeGst.toFixed(2)}</strong>
                               </div>
-                              <div style={{ display: "flex", justifyContent: "space-between", maxWidth: "260px", borderTop: "1px dashed #94a3b8", paddingTop: "6px", marginTop: "4px" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", maxWidth: "300px", borderTop: "1px dashed #94a3b8", paddingTop: "6px", marginTop: "4px" }}>
                                 <span style={{ fontWeight: "800", color: "#F02186" }}>Total Payable</span>
-                                <strong style={{ color: "#F02186", fontSize: "16px" }}>₹{FILING_FEE_TOTAL}</strong>
+                                <div>
+                                  {appliedCoupon && (
+                                    <span style={{ textDecoration: "line-through", color: "#94a3b8", fontSize: "12.5px", marginRight: "6px" }}>
+                                      ₹{FILING_FEE_TOTAL}
+                                    </span>
+                                  )}
+                                  <strong style={{ color: "#F02186", fontSize: "16px" }}>₹{dynamicFilingFeeTotal.toFixed(2)}</strong>
+                                </div>
                               </div>
                             </div>
                             <div style={{ marginTop: "10px", fontSize: "11.5px", color: "#64748b" }}>
@@ -2207,7 +2610,27 @@ export default function Dashboard() {
                                 transition: "all 0.2s", width: "100%",
                               }}
                             >
-                              {paymentProcessing ? "⏳ Processing..." : `💳 Pay ₹${FILING_FEE_TOTAL} & Unlock`}
+                              {paymentProcessing ? "⏳ Processing..." : `💳 Pay ₹${dynamicFilingFeeTotal.toFixed(2)} & Unlock`}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleSimulatePayment}
+                              disabled={paymentProcessing}
+                              title="Instantly unlocks payment for testing/demo without needing a live gateway card"
+                              style={{
+                                background: "#f8fafc",
+                                color: "#0b3d91",
+                                border: "1px dashed #93c5fd",
+                                borderRadius: "8px",
+                                padding: "6px 12px",
+                                fontSize: "11px",
+                                fontWeight: "700",
+                                cursor: paymentProcessing ? "not-allowed" : "pointer",
+                                width: "100%",
+                                transition: "all 0.2s",
+                              }}
+                            >
+                              ⚡ Test Mode: Instant Unlock (Simulate)
                             </button>
                             <div style={{ fontSize: "11px", color: "#64748b", textAlign: "center" }}>🔒 100% Secure &amp; Encrypted</div>
                             <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>

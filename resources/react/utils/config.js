@@ -38,7 +38,12 @@ export const stripLeadingSlash = (path = "") => {
  * @returns {string} Base URL without trailing slash (e.g. 'http://localhost:8000')
  */
 export const getApiBaseUrl = () => {
-  // 1. Read from environment variables (Vite prefix VITE_ or API_ prefix)
+  // 1. If running in browser, prioritize same origin (e.g. http://localhost:8000 or https://tiqtax.tipic.co.in)
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return stripTrailingSlash(window.location.origin);
+  }
+
+  // 2. Read from environment variables (Vite prefix VITE_ or API_ prefix)
   const envUrl =
     import.meta.env.VITE_API_BASE_URL || import.meta.env.API_BASE_URL;
 
@@ -46,15 +51,8 @@ export const getApiBaseUrl = () => {
     return stripTrailingSlash(envUrl);
   }
 
-  // 2. Fallback when environment variable is not defined
+  // 3. Fallback when environment variable is not defined
   if (import.meta.env.PROD) {
-    if (
-      typeof window !== "undefined" &&
-      window.location?.origin &&
-      !window.location.origin.includes("localhost")
-    ) {
-      return stripTrailingSlash(window.location.origin);
-    }
     return stripTrailingSlash(DEFAULT_PRODUCTION_URL);
   }
 

@@ -82,6 +82,7 @@
 
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Home from "./pages/Home";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import TaxProfile from "./pages/TaxProfile";
@@ -95,6 +96,7 @@ import CaLogin from "./pages/CaLogin";
 import CustomerPortal from "./pages/CustomerPortal";
 import ClientDetails from "./pages/ClientDetails";
 import NoticesPage from "./pages/NoticesPage";
+import TaxChatbot from "./components/TaxChatbot";
 
 function isAuthenticated() {
   return !!localStorage.getItem("auth_token");
@@ -108,14 +110,18 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Landing Page (ClearTax style) */}
+        <Route path="/" element={<Home />} />
+
+        {/* Public Auth Routes */}
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         
-        {/* Customer Flow Landing — choose Self-File or Hire CA */}
-        <Route path="/customer-portal" element={<ProtectedRoute><CustomerPortal /></ProtectedRoute>} />
-
         {/* Dedicated CA Firm & Staff Login */}
         <Route path="/ca-login" element={<CaLogin />} />
+
+        {/* Customer Flow Landing — choose Self-File or Hire CA */}
+        <Route path="/customer-portal" element={<ProtectedRoute><CustomerPortal /></ProtectedRoute>} />
 
         <Route path="/tax-profile" element={<ProtectedRoute><TaxProfile /></ProtectedRoute>} />
         <Route path="/connect-itr" element={<ProtectedRoute><ConnectITR /></ProtectedRoute>} />
@@ -131,8 +137,11 @@ export default function App() {
         <Route path="/admin/payments" element={<ProtectedRoute><CaPortal defaultNav="payments" /></ProtectedRoute>} />
         <Route path="/ca-portal/client/:id" element={<ProtectedRoute><ClientDetails /></ProtectedRoute>} />
 
-        <Route path="*" element={<Navigate to={isAuthenticated() ? "/customer-portal" : "/login"} replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* Global Sticky AI Tax Assistant Chatbot */}
+      <TaxChatbot />
     </BrowserRouter>
   );
 }

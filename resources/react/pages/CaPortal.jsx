@@ -39,6 +39,7 @@ export default function CaPortal({ defaultNav }) {
   // Active Sidebar Nav — employees default to my_workspace, admins to all_cases (or defaultNav if provided)
   const [activeNav, setActiveNav] = useState(defaultNav || "my_workspace"); // 'my_workspace' | 'all_cases' | 'pending_cases' | 'in_progress' | 'prepared' | 'staff_directory' | 'contact_inquiries' | 'platform_dashboard' | 'payments'
   const [searchTerm, setSearchTerm] = useState("");
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Pagination states for tables (medium size ~8 per page)
   const [casesPage, setCasesPage] = useState(1);
@@ -418,8 +419,47 @@ export default function CaPortal({ defaultNav }) {
         fontSize: "12.5px",
       }}
     >
+      <style>{`
+        @media (max-width: 768px) {
+          .ca-mobile-menu-btn {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 4px;
+          }
+          .ca-portal-sidebar {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            height: 100vh !important;
+            z-index: 1050 !important;
+            transform: translateX(-100%);
+            transition: transform 0.25s ease-in-out;
+            width: 220px !important;
+          }
+          .ca-portal-sidebar.ca-sidebar-open {
+            transform: translateX(0) !important;
+          }
+          .ca-sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(2px);
+            z-index: 1040;
+          }
+        }
+      `}</style>
+
+      {/* Backdrop overlay for mobile sidebar drawer */}
+      {mobileSidebarOpen && (
+        <div
+          className="ca-sidebar-backdrop"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* ═════════ 1. LUXURY ANTIQUE FINTECH SIDEBAR (FIXED NEVER SCROLLS WITH PAGE) ═════════ */}
       <div
+        className={`ca-portal-sidebar ${mobileSidebarOpen ? "ca-sidebar-open" : ""}`}
         style={{
           width: "185px",
           height: "100vh",
@@ -607,20 +647,20 @@ export default function CaPortal({ defaultNav }) {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "5px 8px",
+              padding: "6px 8px",
               borderRadius: "6px",
               cursor: "pointer",
               background:
                 activeNav === "my_workspace"
-                  ? "linear-gradient(90deg, rgba(255, 122, 0, 0.2) 0%, rgba(255, 20, 147, 0.22) 50%, rgba(124, 58, 237, 0.2) 100%)"
+                  ? "rgba(56, 189, 248, 0.15)"
                   : "transparent",
               color: activeNav === "my_workspace" ? "#FFFFFF" : "#CBD5E1",
               fontWeight: activeNav === "my_workspace" ? "800" : "500",
               fontSize: "10.5px",
               borderLeft:
                 activeNav === "my_workspace"
-                  ? "2.5px solid #FF1493"
-                  : "2.5px solid transparent",
+                  ? "3px solid #38BDF8"
+                  : "3px solid transparent",
               transition: "all 0.15s ease",
             }}
           >
@@ -633,9 +673,10 @@ export default function CaPortal({ defaultNav }) {
             ).length > 0 && (
               <span
                 style={{
-                  background: "linear-gradient(135deg, #FF7A00 0%, #FF1493 50%, #7C3AED 100%)",
-                  color: "#fff",
-                  padding: "1px 5px",
+                  background: "rgba(56, 189, 248, 0.22)",
+                  color: "#38BDF8",
+                  border: "1px solid rgba(56, 189, 248, 0.4)",
+                  padding: "1px 6px",
                   borderRadius: "100px",
                   fontSize: "9px",
                   fontWeight: "800",
@@ -707,16 +748,16 @@ export default function CaPortal({ defaultNav }) {
                   borderRadius: "6px",
                   cursor: "pointer",
                   background: active
-                    ? "linear-gradient(90deg, rgba(255, 122, 0, 0.2) 0%, rgba(255, 20, 147, 0.22) 50%, rgba(124, 58, 237, 0.2) 100%)"
+                    ? "rgba(56, 189, 248, 0.15)"
                     : "transparent",
                   color: active ? "#FFFFFF" : "#CBD5E1",
                   fontWeight: active ? "800" : "500",
                   fontSize: "10.5px",
                   borderLeft: active
-                    ? "2.5px solid #FF1493"
+                    ? "3px solid #38BDF8"
                     : item.highlight
-                    ? "2.5px solid #FF7A00"
-                    : "2.5px solid transparent",
+                    ? "3px solid #F59E0B"
+                    : "3px solid transparent",
                   transition: "all 0.15s ease",
                 }}
               >
@@ -727,15 +768,20 @@ export default function CaPortal({ defaultNav }) {
                 <span
                   style={{
                     background: active
-                      ? "linear-gradient(135deg, #FF7A00 0%, #FF1493 50%, #7C3AED 100%)"
+                      ? "rgba(56, 189, 248, 0.22)"
                       : item.highlight
-                      ? "#FF7A00"
+                      ? "rgba(245, 158, 11, 0.25)"
                       : "rgba(255,255,255,0.08)",
                     color: active
-                      ? "#FFFFFF"
+                      ? "#38BDF8"
                       : item.highlight
-                      ? "#FFFFFF"
+                      ? "#FCD34D"
                       : "#94A3B8",
+                    border: active
+                      ? "1px solid rgba(56, 189, 248, 0.4)"
+                      : item.highlight
+                      ? "1px solid rgba(245, 158, 11, 0.4)"
+                      : "1px solid rgba(255,255,255,0.06)",
                     padding: "1px 5px",
                     borderRadius: "100px",
                     fontSize: "9px",
@@ -923,8 +969,8 @@ export default function CaPortal({ defaultNav }) {
             "radial-gradient(at 15% 15%, rgba(255, 122, 0, 0.03) 0px, transparent 60%), radial-gradient(at 85% 85%, rgba(124, 58, 237, 0.03) 0px, transparent 60%), #F8FAFC",
         }}
       >
-        {/* TiQTAX Signature Logo Gradient Top Stripe */}
-        <div style={{ height: "3px", background: "linear-gradient(90deg, #FF7A00 0%, #FF1493 50%, #7C3AED 100%)", width: "100%" }} />
+        {/* Executive Slate & Blue Subtle Accent Top Stripe */}
+        <div style={{ height: "2.5px", background: "linear-gradient(90deg, #3B82F6 0%, #6366F1 50%, #8B5CF6 100%)", width: "100%" }} />
 
         {/* Luxury Top Header Bar */}
         <div
@@ -943,22 +989,41 @@ export default function CaPortal({ defaultNav }) {
             zIndex: 20,
           }}
         >
-          <div>
-            <div className="d-flex align-items-center gap-1">
-              <span
-                style={{
-                  fontSize: "8.5px",
-                  fontWeight: "800",
-                  textTransform: "uppercase",
-                  color: "#1D4ED8",
-                  letterSpacing: "0.4px",
-                  background: "rgba(29, 78, 216, 0.08)",
-                  padding: "1px 5px",
-                  borderRadius: "4px",
-                }}
-              >
-                ITD Compliant Console
-              </span>
+          <div className="d-flex align-items-center gap-2">
+            <button
+              type="button"
+              className="ca-mobile-menu-btn"
+              onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+              style={{
+                display: "none",
+                background: "#f1f5f9",
+                border: "1px solid #cbd5e1",
+                borderRadius: "6px",
+                padding: "4px 8px",
+                fontSize: "12px",
+                fontWeight: "700",
+                color: "#0f172a",
+                cursor: "pointer",
+              }}
+            >
+              ☰ Menu
+            </button>
+            <div>
+              <div className="d-flex align-items-center gap-1">
+                <span
+                  style={{
+                    fontSize: "8.5px",
+                    fontWeight: "800",
+                    textTransform: "uppercase",
+                    color: "#1D4ED8",
+                    letterSpacing: "0.4px",
+                    background: "rgba(29, 78, 216, 0.08)",
+                    padding: "1px 5px",
+                    borderRadius: "4px",
+                  }}
+                >
+                  ITD Compliant Console
+                </span>
               <span style={{ color: "#94A3B8", fontSize: "9px" }}>•</span>
               <span style={{ fontSize: "9.5px", color: "#64748B", fontWeight: "600" }}>
                 AY 2026-27 (FY 2025-26)
@@ -974,7 +1039,7 @@ export default function CaPortal({ defaultNav }) {
               }}
             >
               {activeNav === "my_workspace"
-                ? `My Filing Desk`
+                ? `My Active Desk`
                 : activeNav === "platform_dashboard"
                 ? "📤 Upload JSON & E-Filing Compliance"
                 : activeNav === "payments"
@@ -986,8 +1051,9 @@ export default function CaPortal({ defaultNav }) {
                 : "Assisted ITR Client Cases"}
             </h4>
           </div>
+        </div>
 
-          <div className="d-flex align-items-center gap-1">
+        <div className="d-flex align-items-center gap-1">
             {/* Search Input */}
             <div style={{ width: "200px", position: "relative" }}>
               <CFormInput

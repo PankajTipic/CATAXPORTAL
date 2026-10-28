@@ -116,26 +116,77 @@ export default function CaLogin() {
         }}
       />
 
+      <style>{`
+        .ca-login-header {
+          position: relative;
+          z-index: 10;
+          padding: 16px 36px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+          background: rgba(255, 255, 255, 0.75);
+          backdrop-filter: blur(12px);
+          gap: 12px;
+        }
+        .ca-login-main {
+          position: relative;
+          z-index: 10;
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px 16px;
+        }
+        .ca-login-card {
+          background: #ffffff;
+          border-radius: 24px;
+          padding: 36px 32px 30px;
+          border: 1.5px solid #e2e8f0;
+          box-shadow: 0 20px 45px rgba(29, 78, 216, 0.07), 0 2px 8px rgba(0, 0, 0, 0.02);
+          overflow: hidden;
+        }
+        .ca-login-stripe {
+          height: 4px;
+          background: linear-gradient(90deg, #FF7A00 0%, #FF1493 50%, #7C3AED 100%);
+          margin: -36px -32px 28px -32px;
+        }
+        @media (max-width: 640px) {
+          .ca-login-header {
+            padding: 12px 14px !important;
+            flex-wrap: wrap !important;
+            gap: 10px !important;
+          }
+          .ca-login-badge {
+            font-size: 10.5px !important;
+            padding: 3px 8px !important;
+          }
+          .ca-login-main {
+            padding: 16px 12px !important;
+          }
+          .ca-login-card {
+            padding: 24px 18px 20px !important;
+            border-radius: 20px !important;
+          }
+          .ca-login-stripe {
+            margin: -24px -18px 20px -18px !important;
+          }
+        }
+        @media (max-width: 440px) {
+          .ca-login-badge {
+            display: none !important;
+          }
+        }
+      `}</style>
+
       {/* ════ TOP MINIMAL HEADER ════ */}
-      <header
-        style={{
-          position: "relative",
-          zIndex: 10,
-          padding: "18px 36px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderBottom: "1px solid rgba(226, 232, 240, 0.6)",
-          background: "rgba(255, 255, 255, 0.75)",
-          backdropFilter: "blur(12px)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+      <header className="ca-login-header">
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
           <img
             src={logo}
             alt="TiQTAX"
             style={{
-              height: "38px",
+              height: "36px",
               width: "auto",
               objectFit: "contain",
               display: "block",
@@ -144,6 +195,7 @@ export default function CaLogin() {
             onClick={() => navigate("/")}
           />
           <div
+            className="ca-login-badge"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -155,6 +207,7 @@ export default function CaLogin() {
               padding: "4px 12px",
               borderRadius: "20px",
               border: "1px solid rgba(255, 20, 147, 0.3)",
+              whiteSpace: "nowrap",
             }}
           >
             <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "linear-gradient(135deg, #FF7A00, #FF1493)", display: "inline-block" }}></span>
@@ -178,6 +231,7 @@ export default function CaLogin() {
             gap: "6px",
             boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
             transition: "all 0.15s ease",
+            whiteSpace: "nowrap",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = "#2563eb";
@@ -194,29 +248,11 @@ export default function CaLogin() {
       </header>
 
       {/* ════ MAIN AUTHENTICATION CARD ════ */}
-      <main
-        style={{
-          position: "relative",
-          zIndex: 10,
-          flex: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "24px",
-        }}
-      >
-        <CContainer style={{ maxWidth: "480px" }}>
-          <div
-            style={{
-              background: "#ffffff",
-              borderRadius: "24px",
-              padding: "36px 32px 30px",
-              border: "1.5px solid #e2e8f0",
-              boxShadow: "0 20px 45px rgba(29, 78, 216, 0.07), 0 2px 8px rgba(0, 0, 0, 0.02)",
-            }}
-          >
+      <main className="ca-login-main">
+        <CContainer style={{ maxWidth: "480px", padding: 0 }}>
+          <div className="ca-login-card">
             {/* TiQTAX Signature Top Gradient Stripe */}
-            <div style={{ height: "4px", background: "linear-gradient(90deg, #FF7A00 0%, #FF1493 50%, #7C3AED 100%)", borderRadius: "24px 24px 0 0", margin: "-36px -32px 28px -32px" }} />
+            <div className="ca-login-stripe" />
 
             {/* Header Icon & Title */}
             <div style={{ textAlign: "center", marginBottom: "24px" }}>

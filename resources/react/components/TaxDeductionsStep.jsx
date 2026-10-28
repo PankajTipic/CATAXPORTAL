@@ -78,6 +78,9 @@ export default function TaxDeductionsStep({
   incomeData = {},
   userPan = "ABCDE1234F",
   isEmptyUser = false,
+  stepText = "Step 4 of 6: Tax Deductions",
+  backText = "← Back to Income",
+  continueText = "Compare Regimes & Choose →",
   onContinue,
   onBack,
   onViewDoc,
@@ -458,7 +461,7 @@ export default function TaxDeductionsStep({
                   border: "1px solid rgba(240, 33, 134, 0.2)",
                 }}
               >
-                Step 4 of 6: Tax Deductions
+                {stepText || "Step 4 of 6: Tax Deductions"}
               </span>
               <span
                 style={{
@@ -2185,7 +2188,7 @@ export default function TaxDeductionsStep({
                 onClick={onBack}
                 style={{ fontWeight: "700", borderRadius: "10px", padding: "10px 18px" }}
               >
-                ← Back to Income
+                {backText || "← Back to Income"}
               </CButton>
             )}
 
@@ -2218,7 +2221,7 @@ export default function TaxDeductionsStep({
                 color: "#ffffff",
               }}
             >
-              Compare Regimes &amp; Choose →
+              {continueText || "Compare Regimes & Choose →"}
             </CButton>
           </div>
         </div>

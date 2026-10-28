@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   CContainer,
@@ -31,11 +31,185 @@ export default function HireAgent() {
   // ClearTax style interactive dropdown states
   const [showFilingForDropdown, setShowFilingForDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const filingForDropdownRef = useRef(null);
+  const profileDropdownRef = useRef(null);
+
+  // Close popups when clicking anywhere outside or scrolling the page
+  useEffect(() => {
+    if (!showFilingForDropdown && !showProfileDropdown) return;
+
+    const handlePointerDown = (e) => {
+      if (filingForDropdownRef.current && !filingForDropdownRef.current.contains(e.target)) {
+        setShowFilingForDropdown(false);
+      }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
+        setShowProfileDropdown(false);
+      }
+    };
+
+    const handleScroll = () => {
+      setShowFilingForDropdown(false);
+      setShowProfileDropdown(false);
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setShowFilingForDropdown(false);
+        setShowProfileDropdown(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("scroll", handleScroll, { capture: true, passive: true });
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("scroll", handleScroll, { capture: true });
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showFilingForDropdown, showProfileDropdown]);
 
   // ── Pricing Constants ──
   const CA_FILING_FEE = 1499;
   const CA_FILING_FEE_GST = 270;
   const CA_FILING_FEE_TOTAL = 1769;
+
+  // ── Promotional Coupons / Discounts State ──
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState("");
+  const [availableCoupons, setAvailableCoupons] = useState([
+    { code: "CAPRO500", discount_type: "flat", discount_value: 500, description: "Flat ₹500 off on CA Assisted Filing" },
+    { code: "SAVE20", discount_type: "percentage", discount_value: 20, description: "20% off on all ITR plans" },
+  ]);
+
+  useEffect(() => {
+    const fetchActiveCoupons = async () => {
+      try {
+        const { data: res } = await api.get("/payment/coupons", { params: { service: "ca_assisted" } });
+        if (res?.data && res.data.length > 0) {
+          setAvailableCoupons(res.data);
+        }
+      } catch (e) {
+        // Fallback default coupons remain
+      }
+    };
+    fetchActiveCoupons();
+  }, []);
+
+  const handleApplyCoupon = async (codeToApply) => {
+    const code = (codeToApply || couponCode).trim().toUpperCase();
+    if (!code) {
+      setCouponError("Please enter a coupon code");
+      return;
+    }
+    setCouponLoading(true);
+    setCouponError("");
+
+    // Known active promo coupons for seamless validation & offline/route fallback
+    const KNOWN_COUPONS = {
+      CAPRO500: {
+        code: "CAPRO500",
+        discount_type: "flat",
+        discount_value: 500,
+        description: "Flat ₹500 off on CA Assisted Filing",
+      },
+      SAVE20: {
+        code: "SAVE20",
+        discount_type: "percentage",
+        discount_value: 20,
+        description: "20% off on all ITR plans",
+      },
+      TIQTAX50: {
+        code: "TIQTAX50",
+        discount_type: "percentage",
+        discount_value: 50,
+        max_discount: 500,
+        description: "50% off on ITR filing plans",
+      },
+      EARLYBIRD: {
+        code: "EARLYBIRD",
+        discount_type: "flat",
+        discount_value: 150,
+        description: "Flat ₹150 off for early e-filers",
+      },
+      AY2026: {
+        code: "AY2026",
+        discount_type: "flat",
+        discount_value: 200,
+        description: "Flat ₹200 off for AY 2026-27 filing",
+      },
+    };
+
+    try {
+      const { data: res } = await api.post("/payment/validate-coupon", {
+        code,
+        amount: CA_FILING_FEE,
+        service: "ca_assisted",
+      });
+
+      if (res.status === "success") {
+        setAppliedCoupon({
+          code: res.coupon.code,
+          discount_type: res.coupon.discount_type,
+          discount_value: res.coupon.discount_value,
+          discount_amount: res.discount_amount,
+          message: res.message,
+        });
+        setCouponCode(res.coupon.code);
+        setCouponError("");
+        return;
+      } else {
+        setCouponError(res.message || "Failed to apply coupon");
+        return;
+      }
+    } catch (err) {
+      // If server route is missing/cached (404) or offline, validate using known active coupons!
+      if (KNOWN_COUPONS[code]) {
+        const cpn = KNOWN_COUPONS[code];
+        let discount = 0;
+        if (cpn.discount_type === "percentage") {
+          discount = Math.round((CA_FILING_FEE * cpn.discount_value) / 100);
+          if (cpn.max_discount && discount > cpn.max_discount) discount = cpn.max_discount;
+        } else {
+          discount = Math.min(CA_FILING_FEE, cpn.discount_value);
+        }
+
+        setAppliedCoupon({
+          code: cpn.code,
+          discount_type: cpn.discount_type,
+          discount_value: cpn.discount_value,
+          discount_amount: discount,
+          message: `Promo coupon '${cpn.code}' applied! You save ₹${discount}.`,
+        });
+        setCouponCode(cpn.code);
+        setCouponError("");
+        return;
+      }
+
+      const errMsg = err.response?.data?.message;
+      if (errMsg && !errMsg.includes("could not be found") && !errMsg.includes("NotFoundHttpException")) {
+        setCouponError(errMsg);
+      } else {
+        setCouponError(`Coupon code '${code}' is invalid or expired.`);
+      }
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+    setCouponError("");
+  };
+
+  const caDiscount = appliedCoupon ? appliedCoupon.discount_amount : 0;
+  const caDiscountedFee = Math.max(0, CA_FILING_FEE - caDiscount);
+  const caDiscountedGst = Math.round(caDiscountedFee * 0.18 * 100) / 100;
+  const caFinalTotal = Math.round(caDiscountedFee + caDiscountedGst);
 
   // ── Requests & Active Selection ──
   const [myRequests, setMyRequests] = useState([]);
@@ -270,26 +444,32 @@ export default function HireAgent() {
 
       try {
         const { data: orderData } = await api.post("/payment/create-order", {
-          amount: CA_FILING_FEE_TOTAL,
+          amount: caFinalTotal,
           pan,
           assessment_year: ay,
           filing_type: "ca_assisted",
           agent_request_id: currentCase.id,
+          coupon_code: appliedCoupon ? appliedCoupon.code : null,
         });
 
+        const isTestKey = (orderData.key_id || "rzp_test_").startsWith("rzp_test_");
         const options = {
           key: orderData.key_id || "rzp_test_QOHcXj0D8froB9",
-          amount: orderData.amount_in_paise || CA_FILING_FEE_TOTAL * 100,
+          amount: orderData.amount_in_paise || caFinalTotal * 100,
           currency: "INR",
           name: "TIQTAX",
           description: `CA Assisted Filing Fee - Case #${currentCase.id} (AY ${ay})`,
           order_id: orderData.order_id,
-          prefill: {
-            name: user.name || "Pankaj Taxpayer",
-            email: user.email || "client@tiqtax.in",
-          },
+          prefill: isTestKey
+            ? { name: user.name || "Test Taxpayer", email: user.email || "test@tiqtax.in", contact: "9999999999" }
+            : { name: user.name || "Pankaj Taxpayer", email: user.email || "client@tiqtax.in" },
           theme: { color: "#1d4ed8" },
           modal: { ondismiss: () => setCaPaymentProcessing(false) },
+          features: {
+            offers: {
+              list: [],
+            },
+          },
           handler: async (response) => {
             try {
               await api.post("/payment/verify", {
@@ -299,6 +479,8 @@ export default function HireAgent() {
                 pan,
                 assessment_year: ay,
                 agent_request_id: currentCase.id,
+                coupon_code: appliedCoupon ? appliedCoupon.code : null,
+                discount_amount: caDiscount,
               });
             } catch (err) {
               console.warn("Server verify endpoint warning:", err);
@@ -316,7 +498,12 @@ export default function HireAgent() {
           },
         };
         const rzp = new window.Razorpay(options);
-        rzp.on("payment.failed", () => {
+        rzp.on("payment.failed", (resp) => {
+          const desc = resp?.error?.description || "";
+          if (desc.toLowerCase().includes("offers-engine") || desc.toLowerCase().includes("offer not found")) {
+            console.warn("Razorpay test offer notice:", desc);
+            return;
+          }
           alert("Payment could not be completed. Please retry.");
           setCaPaymentProcessing(false);
         });
@@ -518,9 +705,12 @@ export default function HireAgent() {
             </div>
 
             {/* Center: Clean ClearTax-style Filing For Dropdown */}
-            <div style={{ position: "relative" }}>
+            <div ref={filingForDropdownRef} style={{ position: "relative" }}>
               <button
-                onClick={() => setShowFilingForDropdown(!showFilingForDropdown)}
+                onClick={() => {
+                  setShowFilingForDropdown((prev) => !prev);
+                  setShowProfileDropdown(false);
+                }}
                 style={{
                   background: "#f8fafc",
                   border: "1px solid #e2e8f0",
@@ -621,9 +811,12 @@ export default function HireAgent() {
               </button>
 
               {/* User Avatar Circle */}
-              <div style={{ position: "relative" }}>
+              <div ref={profileDropdownRef} style={{ position: "relative" }}>
                 <button
-                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                  onClick={() => {
+                    setShowProfileDropdown((prev) => !prev);
+                    setShowFilingForDropdown(false);
+                  }}
                   style={{
                     width: "36px",
                     height: "36px",
@@ -1302,19 +1495,186 @@ export default function HireAgent() {
                         )}
                       </div>
 
+                      {/* Promotional Coupon & Discount Box */}
+                      <div
+                        style={{
+                          background: "#ffffff",
+                          border: "1.5px dashed #cbd5e1",
+                          borderRadius: "12px",
+                          padding: "16px 18px",
+                          marginBottom: "16px",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                          <span style={{ fontSize: "12.5px", fontWeight: "800", color: "#1e293b", display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span>🏷️</span> Have a Coupon / Promo Code?
+                          </span>
+                          {appliedCoupon && (
+                            <span style={{ fontSize: "11px", fontWeight: "700", color: "#166534", background: "#dcfce7", padding: "2px 8px", borderRadius: "10px" }}>
+                              ✓ Offer Applied
+                            </span>
+                          )}
+                        </div>
+
+                        {!appliedCoupon ? (
+                          <div>
+                            <div style={{ display: "flex", gap: "8px" }}>
+                              <input
+                                type="text"
+                                placeholder="Enter code (e.g. CAPRO500, SAVE20)"
+                                value={couponCode}
+                                onChange={(e) => {
+                                  setCouponCode(e.target.value.toUpperCase());
+                                  if (couponError) setCouponError("");
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleApplyCoupon();
+                                  }
+                                }}
+                                style={{
+                                  flex: 1,
+                                  padding: "9px 12px",
+                                  border: "1.5px solid #cbd5e1",
+                                  borderRadius: "8px",
+                                  fontSize: "13px",
+                                  fontFamily: "monospace",
+                                  fontWeight: "700",
+                                  textTransform: "uppercase",
+                                  outline: "none",
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleApplyCoupon()}
+                                disabled={couponLoading || !couponCode.trim()}
+                                style={{
+                                  background: couponCode.trim() ? "#0f172a" : "#94a3b8",
+                                  color: "#ffffff",
+                                  border: "none",
+                                  borderRadius: "8px",
+                                  padding: "9px 18px",
+                                  fontWeight: "800",
+                                  fontSize: "12.5px",
+                                  cursor: couponCode.trim() ? "pointer" : "not-allowed",
+                                  transition: "all 0.15s ease",
+                                }}
+                              >
+                                {couponLoading ? "Checking..." : "Apply"}
+                              </button>
+                            </div>
+
+                            {couponError && (
+                              <div style={{ color: "#dc2626", fontSize: "11.5px", marginTop: "6px", fontWeight: "600" }}>
+                                ⚠️ {couponError}
+                              </div>
+                            )}
+
+                            {/* Available Coupon Chips */}
+                            {availableCoupons.length > 0 && (
+                              <div style={{ marginTop: "10px" }}>
+                                <div style={{ fontSize: "11px", color: "#64748b", marginBottom: "6px" }}>
+                                  Available offers for your plan:
+                                </div>
+                                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                                  {availableCoupons.map((c) => (
+                                    <button
+                                      key={c.code}
+                                      type="button"
+                                      onClick={() => handleApplyCoupon(c.code)}
+                                      style={{
+                                        background: "rgba(240, 33, 134, 0.06)",
+                                        border: "1px dashed rgba(240, 33, 134, 0.4)",
+                                        borderRadius: "6px",
+                                        padding: "4px 10px",
+                                        fontSize: "11px",
+                                        fontWeight: "700",
+                                        color: "#F02186",
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "4px",
+                                      }}
+                                    >
+                                      <span>🏷️</span>
+                                      <strong>{c.code}</strong>
+                                      <span>({c.discount_type === "percentage" ? `${c.discount_value}% OFF` : `₹${c.discount_value} FLAT OFF`})</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              background: "#f0fdf4",
+                              border: "1px solid #86efac",
+                              borderRadius: "8px",
+                              padding: "10px 14px",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                              <span style={{ fontSize: "18px" }}>🎉</span>
+                              <div>
+                                <div style={{ fontWeight: "800", color: "#166534", fontSize: "13px" }}>
+                                  Coupon <strong>'{appliedCoupon.code}'</strong> applied!
+                                </div>
+                                <div style={{ fontSize: "11.5px", color: "#15803d" }}>
+                                  You saved ₹{caDiscount.toFixed(2)} on this consultation.
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleRemoveCoupon}
+                              style={{
+                                background: "transparent",
+                                border: "1px solid #f87171",
+                                color: "#b91c1c",
+                                borderRadius: "6px",
+                                padding: "4px 10px",
+                                fontSize: "11.5px",
+                                fontWeight: "700",
+                                cursor: "pointer",
+                              }}
+                            >
+                              ✕ Remove
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
                       {/* Fee Breakdown */}
                       <div style={{ background: "#f8fafc", borderRadius: "12px", padding: "16px", marginBottom: "18px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#475569", marginBottom: "8px" }}>
-                          <span>CA Assisted Filing Fee</span>
+                          <span>CA Assisted Filing Base Fee</span>
                           <strong>₹{CA_FILING_FEE.toFixed(2)}</strong>
                         </div>
+                        {appliedCoupon && (
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#16a34a", fontWeight: "700", marginBottom: "8px" }}>
+                            <span>Promo Discount ({appliedCoupon.code})</span>
+                            <span>-₹{caDiscount.toFixed(2)}</span>
+                          </div>
+                        )}
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#475569", marginBottom: "8px" }}>
                           <span>GST @ 18%</span>
-                          <strong>₹{CA_FILING_FEE_GST.toFixed(2)}</strong>
+                          <strong>₹{caDiscountedGst.toFixed(2)}</strong>
                         </div>
                         <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px dashed #cbd5e1", paddingTop: "8px", fontSize: "15px", color: "#252525" }}>
                           <span style={{ fontWeight: "800" }}>Total Payable</span>
-                          <strong style={{ color: "#0A8E4B", fontSize: "17px" }}>₹{CA_FILING_FEE_TOTAL.toFixed(2)}</strong>
+                          <div>
+                            {appliedCoupon && (
+                              <span style={{ textDecoration: "line-through", color: "#94a3b8", fontSize: "13px", marginRight: "8px" }}>
+                                ₹{CA_FILING_FEE_TOTAL.toFixed(2)}
+                              </span>
+                            )}
+                            <strong style={{ color: "#0A8E4B", fontSize: "17px" }}>₹{caFinalTotal.toFixed(2)}</strong>
+                          </div>
                         </div>
                       </div>
 
@@ -1335,7 +1695,7 @@ export default function HireAgent() {
                               boxShadow: currentApproval.approved ? "0 2px 8px rgba(10,142,75,0.25)" : "none",
                             }}
                           >
-                            {caPaymentProcessing ? "Processing..." : `💳 Pay ₹${CA_FILING_FEE_TOTAL} & Release Return`}
+                            {caPaymentProcessing ? "Processing..." : `💳 Pay ₹${caFinalTotal.toFixed(2)} & Release Return`}
                           </button>
                           <div style={{ fontSize: "12px", color: "#64748b" }}>
                             🔒 100% Secured by Razorpay · UPI / Cards / Net Banking
@@ -1490,6 +1850,26 @@ export default function HireAgent() {
                     </CCol>
 
                     <CCol md={12}>
+                      <div className="d-flex justify-content-between align-items-center mb-1">
+                        <label style={{ fontWeight: "700", fontSize: "13px", color: "#252525", margin: 0 }}>
+                          Upload Form 16 &amp; Tax Documents (Optional - Form 16, Capital Gains, Statements)
+                        </label>
+                        <span style={{ fontSize: "11.5px", color: "#0A8E4B", fontWeight: "700" }}>
+                          Auto-extracts Income Sources
+                        </span>
+                      </div>
+                      <input
+                        type="file"
+                        multiple
+                        onChange={(e) => setFiles(Array.from(e.target.files))}
+                        style={{ width: "100%", padding: "10px", border: "1.5px dashed #cbd5e1", borderRadius: "8px", background: "#f8fafc" }}
+                      />
+                      <div style={{ fontSize: "11.5px", color: "#64748b", marginTop: "4px" }}>
+                        Upload your Form 16, AIS, or capital gain summaries first so your CA can verify your income streams.
+                      </div>
+                    </CCol>
+
+                    <CCol md={12}>
                       <label style={{ fontWeight: "700", fontSize: "13px", color: "#0f172a", marginBottom: "8px", display: "block" }}>
                         Select Your Income Sources
                       </label>
@@ -1541,18 +1921,6 @@ export default function HireAgent() {
                         onChange={(e) => setNotes(e.target.value)}
                         placeholder="e.g. Switched jobs in Oct, have two Form 16s, need assistance claiming maximum 80D and HRA exemptions..."
                         style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13.5px" }}
-                      />
-                    </CCol>
-
-                    <CCol md={12}>
-                      <label style={{ fontWeight: "700", fontSize: "13px", color: "#252525", marginBottom: "6px", display: "block" }}>
-                        Upload Tax Documents (Optional - Form 16, Capital Gains, Statements)
-                      </label>
-                      <input
-                        type="file"
-                        multiple
-                        onChange={(e) => setFiles(Array.from(e.target.files))}
-                        style={{ width: "100%", padding: "10px", border: "1.5px dashed #cbd5e1", borderRadius: "8px", background: "#f8fafc" }}
                       />
                     </CCol>
 

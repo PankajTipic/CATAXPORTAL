@@ -207,7 +207,31 @@
 }
 
 @media (max-width: 768px) {
+  .service-hero-3d {
+    padding: 5rem 0 2.5rem;
+    min-height: auto;
+  }
+
   .service-hero-content h1 {
-    font-size: 2.8rem;
+    font-size: clamp(2rem, 8vw, 2.5rem);
+  }
+
+  .service-value-card {
+    padding: 2.5rem 1.5rem;
+    border-radius: 20px;
+  }
+
+  .service-value-card h3 {
+    font-size: 1.4rem;
+  }
+
+  .process-grid-3d {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    margin-top: 2.5rem;
+  }
+
+  .process-step-3d {
+    padding: 2rem 1.25rem;
   }
 }

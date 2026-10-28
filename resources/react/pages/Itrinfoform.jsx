@@ -282,37 +282,8 @@ export default function ItrInfoForm({ caseData, defaultPan = "", onSubmitted }) 
             ))}
           </div>
 
-          {/* 4. Income + deductions + regime */}
-          <div style={S.secTitle}>4. Income sources this year <span style={{ color: "#dc2626" }}>*</span></div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {COMMON_INCOME_SOURCES.map((s) => (
-              <span key={s} style={S.chip(incomeSources.includes(s))} onClick={() => toggle(incomeSources, setIncomeSources, s)}>
-                {incomeSources.includes(s) ? "✓ " : ""}{s}
-              </span>
-            ))}
-          </div>
-
-          <div style={S.secTitle}>5. Deductions you expect to claim</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {DEDUCTION_OPTIONS.map((s) => (
-              <span key={s} style={S.chip(deductions.includes(s))} onClick={() => toggle(deductions, setDeductions, s)}>
-                {deductions.includes(s) ? "✓ " : ""}{s}
-              </span>
-            ))}
-          </div>
-
-          <div style={{ marginTop: 16, maxWidth: 360 }}>
-            <label style={S.label}>Tax regime preference</label>
-            <select style={S.input} value={common.preferred_regime} onChange={(e) => setC("preferred_regime", e.target.value)}>
-              {REGIME_PREFERENCES.map((r) => (
-                <option key={r.value} value={r.value}>{r.label}</option>
-              ))}
-            </select>
-            <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 4 }}>Your CA compares both regimes and shows you which saves more tax.</div>
-          </div>
-
-          {/* 6. Documents */}
-          <div style={S.secTitle}>6. Upload documents ({fileCount} selected)</div>
+          {/* 4. Documents & Form 16 */}
+          <div style={S.secTitle}>4. Upload Form 16 &amp; documents ({fileCount} selected)</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 12 }}>
             {docList.map((d) => {
               const files = docs[d.key] || [];
@@ -343,6 +314,36 @@ export default function ItrInfoForm({ caseData, defaultPan = "", onSubmitted }) 
           </div>
           <div style={{ fontSize: 12, color: "#64748b", marginTop: 8 }}>
             Missing something? You can still submit. Your CA will ask for anything else by chat or call.
+          </div>
+
+          {/* 5. Income sources */}
+          <div style={S.secTitle}>5. Income sources this year <span style={{ color: "#dc2626" }}>*</span></div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {COMMON_INCOME_SOURCES.map((s) => (
+              <span key={s} style={S.chip(incomeSources.includes(s))} onClick={() => toggle(incomeSources, setIncomeSources, s)}>
+                {incomeSources.includes(s) ? "✓ " : ""}{s}
+              </span>
+            ))}
+          </div>
+
+          {/* 6. Deductions & regime */}
+          <div style={S.secTitle}>6. Deductions you expect to claim</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {DEDUCTION_OPTIONS.map((s) => (
+              <span key={s} style={S.chip(deductions.includes(s))} onClick={() => toggle(deductions, setDeductions, s)}>
+                {deductions.includes(s) ? "✓ " : ""}{s}
+              </span>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 16, maxWidth: 360 }}>
+            <label style={S.label}>Tax regime preference</label>
+            <select style={S.input} value={common.preferred_regime} onChange={(e) => setC("preferred_regime", e.target.value)}>
+              {REGIME_PREFERENCES.map((r) => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+              ))}
+            </select>
+            <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 4 }}>Your CA compares both regimes and shows you which saves more tax.</div>
           </div>
 
           {/* 7. Refund bank + instructions */}
